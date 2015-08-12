@@ -285,11 +285,14 @@ void Arg::construct() {
         if (*M.itValue == 1){
           removeAncMat(*M.itStart, *M.itEnd, intervalStarts[i], intervalEnds[i]);
           removeAncMat(*M.itStart, *M.itEnd, intervalStarts[j], intervalEnds[j]);
-          *M.itValue = -1;
+          M.itStart = M.starts.erase(M.itStart);
+          M.itEnd = M.ends.erase(M.itEnd);
+          M.itValue = M.values.erase(M.itValue);
+        }else{
+          ++M.itStart;
+          ++M.itEnd;
+          ++M.itValue;
         }
-        ++M.itStart;
-        ++M.itEnd;
-        ++M.itValue;
       }
       t2=clock();
       remove_time += t2-t1;
@@ -405,7 +408,7 @@ void Arg::construct() {
       }
       //And for non-clonal parent
       recombRates.push_back(0.0);
-      probStart.push_back(vector<double>(b,0.0));
+      probStart.push_back(vector<double>(NULL));
       totMaterial.push_back(0);
       calc_nonClonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb, totMaterial.back());
       t2=clock();
