@@ -22,7 +22,6 @@ void combine_ancestries(vector<int> &starts_1, vector<int> &ends_1, vector<int> 
   vector<int> tempStarts;
   vector<int> tempEnds;
   int index_1=0, index_2=0;
-  int currentStart = 0, currentEnd = 0;
   int b_1 = starts_1.size();
   int b_2 = starts_2.size();
   while (true){
@@ -44,7 +43,6 @@ void combine_ancestries(vector<int> &starts_1, vector<int> &ends_1, vector<int> 
       }
     }
   }
-  //are you sure that the following works, that is, that the vectors pointed by start_1 and ends_1 are modified? Isn't it better to return temp_starts and temp_ends? (just checking, I don't know)
   starts_1 = tempStarts;
   ends_1 = tempEnds;
 }

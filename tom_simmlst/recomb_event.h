@@ -86,11 +86,6 @@ void split_ancestries(vector<int> &starts_1, vector<int> &ends_1, vector<int> &s
   }
   starts_1 = tempStarts_1;
   ends_1 = tempEnds_1;
-  cout << "Recomb: " << endl;
-  for (int a=0;a<int(starts_1.size());++a) cout << starts_1[a] << " " << ends_1[a] << " ";
-  cout << endl;
-  for (int a=0;a<int(starts_2.size());++a) cout << starts_2[a] << " " << ends_2[a] << " ";
-  cout << endl;
 }
 
 void choose_nonClonalRecomb(const vector<double> &prob, const int G, const vector<int> &starts, const vector<int> &ends, int &beg, int &end, const double noStop){

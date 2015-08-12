@@ -30,14 +30,14 @@ Arg::Arg(int n,double rho,double delta,vector<int> blocks,vector<int> gaps,PopSi
 
 void removeAncMat(const int start, const int end, vector<int> &starts, vector<int> &ends){
   //Reove MRCA material from chosen nodes
-  cout << "Interval to remove: " << start << " " << end << endl;
+  //cout << "Interval to remove: " << start << " " << end << endl;
   vector<int> tempStarts;
   vector<int> tempEnds;
   for (int a=0;a<int(starts.size());++a){
     if ((end < starts[a]) || (start > ends[a])){
       tempStarts.push_back(starts[a]);
       tempEnds.push_back(ends[a]);
-    } else if ((start <= starts[a]) && (end >= starts[a])){
+    }else if ((start <= starts[a]) && (end >= starts[a])){
       if (end < ends[a]){
         tempStarts.push_back(end+1);
         tempEnds.push_back(ends[a]);
@@ -57,10 +57,10 @@ void removeAncMat(const int start, const int end, vector<int> &starts, vector<in
   ends = tempEnds;
 }
 
-void modifyMRCA(MRCA& M, const int start, const int end, vector<int> &starts1, vector<int> &ends1, vector<int> &starts2, vector<int> &ends2){
+void modifyMRCA(MRCA& M, const int start, const int end){
 //update the list of MRCA intervals by subtracting an interval overlapping in the two coalesceing lineages
-  cout << "Overlap interval:" << endl;
-  cout << start << " " << end << endl;
+  //cout << "Overlap interval:" << endl;
+  //cout << start << " " << end << endl;
   M.itStart=M.starts.begin();
   M.itEnd=M.ends.begin();
   M.itValue=M.values.begin();
@@ -70,7 +70,7 @@ void modifyMRCA(MRCA& M, const int start, const int end, vector<int> &starts1, v
    //exit();
 	}
 	while (*((M).itEnd) < start) {
-    cout << "Start: " << *M.itStart << " End: " << *M.itEnd << " Value: " << *M.itValue << endl;
+    //cout << "Start: " << *M.itStart << " End: " << *M.itEnd << " Value: " << *M.itValue << endl;
 		++((M).itStart);
 		++((M).itEnd);
 		++((M).itValue);
@@ -80,7 +80,7 @@ void modifyMRCA(MRCA& M, const int start, const int end, vector<int> &starts1, v
       break;
 		}
 	}
-  cout << "Start: " << *M.itStart << " End: " << *M.itEnd << " Value: " << *M.itValue << endl;
+  //cout << "Start: " << *M.itStart << " End: " << *M.itEnd << " Value: " << *M.itValue << endl;
 
 	if (start<*((M).itStart)){
 		cout << "Error : this part should be in the MRCA vector, but it isn't (3)" << start << " " << *M.itStart << endl;
@@ -95,24 +95,11 @@ void modifyMRCA(MRCA& M, const int start, const int end, vector<int> &starts1, v
     --((M).itStart);
 		(M).ends.insert((M).itEnd,start-1);
 		(M).values.insert((M).itValue,*(M).itValue);
-    cout << "New interval1: ";
-    cout << *M.itStart << " " << *M.itEnd << " Value: " << *M.itValue << endl;
-    --((M).itStart);
-    --((M).itEnd);
-    --((M).itValue);
 	}
 
   	//iteratively look at all intervals in the MRCA structure overlapping completely the given interval
 	while ((((M).itStart)!=(M).starts.end()) && (*((M).itEnd)<=end)) {
     --*((M).itValue);
-    cout << "Completely overlapping interval: " << endl;
-    cout << *((M).itStart) << " " << *((M).itEnd) << endl;
-    cout << "Value: " << *((M).itValue) << endl;
-		if (*((M).itValue)==0) {
-      cout << "Error : MRCA values should not reach 0!" << endl;
-    	//exit();
-      return;
-    }
 		++((M).itStart);
 		++((M).itEnd);
 		++((M).itValue);
@@ -122,19 +109,11 @@ void modifyMRCA(MRCA& M, const int start, const int end, vector<int> &starts1, v
   if (((M).itStart!=(M).starts.end()) && (*((M).itStart)<=end)){
     ++((M).itStart);
     (M).starts.insert((M).itStart,end+1);
-    --((M).itStart);
     (M).ends.insert((M).itEnd,end);
     (M).values.insert((M).itValue,*((M).itValue));
     --(M).itValue;
     --*((M).itValue);
-    ++((M).itValue);
-    cout << "New interval 2: ";
-    cout << *M.itStart << " " << *M.itEnd << " Value: " << *M.itValue << endl;
-    ++((M).itStart);
-    ++((M).itEnd);
-    ++((M).itValue);
   }
-
 }
 
 void Arg::construct() {
@@ -183,15 +162,12 @@ void Arg::construct() {
   //Create ancestral intervals
   intervalStarts.push_back(vector<int>(NULL));
   intervalEnds.push_back(vector<int>(NULL));
-  intervalStarts.back().push_back(blocks[0]);
-  intervalEnds.back().push_back(blocks[1]-1);
-  for (int i=1;i<b;++i){
-    gap += gaps[i-1];
-    intervalStarts.back().push_back(blocks[i] + gap);
-    intervalEnds.back().push_back(blocks[i+1] + gap - 1);
+  for (int i=0;i<b;++i){
+    intervalStarts.back().push_back(blockStarts[i]);
+    intervalEnds.back().push_back(blockEnds[i]);
   }
   //Initialise MRCA struct
-  for (int i=0;i<int(intervalStarts.back().size());++i){
+  for (int i=0;i<b;++i){
     M.starts.push_back(intervalStarts.back()[i]);
     M.ends.push_back(intervalEnds.back()[i]);
     M.values.push_back(n);//Initialise material for all leaf nodes
@@ -224,7 +200,7 @@ void Arg::construct() {
   cout << "Time spent initialising nodes: " << (double)(t2-t1)/CLOCKS_PER_SEC << " seconds" << endl;
   double split_time=0.0, recomb_probTime=0.0, recomb_intervalTime=0.0, combine_time=0.0, remove_time=0.0;
   while (k>1) {
-    cout << "Nodes remaining: " << k << endl;
+    //cout << "Nodes remaining: " << k << endl;
     //Calculate the current rate of recombination
     double currentRecomb = 0.0;
     for (int i=0;i<int(recombRates.size());++i) currentRecomb += recombRates[i];
@@ -258,15 +234,15 @@ void Arg::construct() {
       toCoal[i] = s.size()-1;
 
       //Test for fully coalesced material
-      //update_MRCA(M, intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
+      t1=clock();
       {
         int index1=0, index2=0;
         int b1 = intervalStarts[i].size(), b2 = intervalStarts[j].size();
-        cout << "Children:" << endl;
-        for (int a=0;a<b1;++a) cout << intervalStarts[i][a] << " " << intervalEnds[i][a] << " ";
-        cout << endl;
-        for (int a=0;a<b2;++a) cout << intervalStarts[j][a] << " " << intervalEnds[j][a] << " ";
-        cout << endl;
+        // cout << "Children:" << endl;
+        // for (int a=0;a<b1;++a) cout << intervalStarts[i][a] << " " << intervalEnds[i][a] << " ";
+        // cout << endl;
+        // for (int a=0;a<b2;++a) cout << intervalStarts[j][a] << " " << intervalEnds[j][a] << " ";
+        // cout << endl;
         int currentStart1=0, currentStart2=0;
         if ((index1 != b1) && (index2 != b2)) currentStart1=intervalStarts[i][index1], currentStart2=intervalStarts[j][index2];
         while ((index1 != b1) && (index2 != b2)){
@@ -281,17 +257,17 @@ void Arg::construct() {
             ++index2;
             if (index2<b2) currentStart2=intervalStarts[j][index2];
           }else if ((currentStart1 == currentStart2) && (intervalEnds[i][index1]<intervalEnds[j][index2])){ //overlap, same start
-            modifyMRCA(M, currentStart1, intervalEnds[i][index1], intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
+            modifyMRCA(M, currentStart1, intervalEnds[i][index1]);
             currentStart2=intervalEnds[i][index1]+1;
             ++index1;
             if (index1<b1) currentStart1=intervalStarts[i][index1];
           }else if ((currentStart1 == currentStart2) && (intervalEnds[j][index2]<intervalEnds[i][index1])){ //overlap, same start
-            modifyMRCA(M, currentStart1, intervalEnds[j][index2], intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
+            modifyMRCA(M, currentStart1, intervalEnds[j][index2]);
             currentStart1=intervalEnds[j][index2]+1;
             ++index2;
             if (index2<b2) currentStart2=intervalStarts[j][index2];
           }else if ((currentStart1 == currentStart2) && (intervalEnds[j][index2]==intervalEnds[i][index1])){ //overlap, same start, same end
-            modifyMRCA(M, currentStart1, intervalEnds[i][index1], intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
+            modifyMRCA(M, currentStart1, intervalEnds[i][index1]);
             ++index2;
             if (index2<b2) currentStart2=intervalStarts[j][index2];
             ++index1;
@@ -311,13 +287,14 @@ void Arg::construct() {
         if (*M.itValue == 1){
           removeAncMat(*M.itStart, *M.itEnd, intervalStarts[i], intervalEnds[i]);
           removeAncMat(*M.itStart, *M.itEnd, intervalStarts[j], intervalEnds[j]);
-          --*M.itValue;
+          *M.itValue = -1;
         }
         ++M.itStart;
         ++M.itEnd;
         ++M.itValue;
       }
-
+      t2=clock();
+      remove_time += t2-t1;
       t1=clock();
       combine_ancestries(intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
       t2=clock();
