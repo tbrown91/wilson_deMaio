@@ -100,7 +100,6 @@ void modifyMRCA(MRCA& M, const int start, const int end, vector<int> &starts1, v
     --((M).itStart);
     --((M).itEnd);
     --((M).itValue);
-		//*((M).itStart)=start; //Is this needed?
 	}
 
   	//iteratively look at all intervals in the MRCA structure overlapping completely the given interval
@@ -113,18 +112,7 @@ void modifyMRCA(MRCA& M, const int start, const int end, vector<int> &starts1, v
       cout << "Error : MRCA values should not reach 0!" << endl;
     	//exit();
       return;
-		}else if (*((M).itValue)==1) {
-			//removeFromAncestralMaterial(*((M).itStart),*((M).itEnd));/////////////////////////////////An interval has just reached MRCA. What do you want to do with this information?
-      //Reove MRCA material from chosen nodes
-      removeAncMat(*((M).itStart), *((M).itEnd), starts1, ends1);
-      removeAncMat(*((M).itStart), *((M).itEnd), starts2, ends2);
-      cout << "New ancestral intervals: " << endl;
-      for (int a=0;a<int(starts1.size());++a) cout << starts1[a] << " " << ends1[a] << ", ";
-      cout << endl;
-      for (int a=0;a<int(starts2.size());++a) cout << starts2[a] << " " << ends2[a] << ", ";
-      cout << endl;
-      //return;
-		}
+    }
 		++((M).itStart);
 		++((M).itEnd);
 		++((M).itValue);
@@ -145,17 +133,6 @@ void modifyMRCA(MRCA& M, const int start, const int end, vector<int> &starts1, v
     ++((M).itStart);
     ++((M).itEnd);
     ++((M).itValue);
-    if (*((M).itValue) == 1){
-      //Remove interval from ancestral material
-      removeAncMat(*((M).itStart), *((M).itEnd), starts1, ends1);
-      removeAncMat(*((M).itStart), *((M).itEnd), starts2, ends2);
-      cout << "New ancestral intervals: " << endl;
-      for (int a=0;a<int(starts1.size());++a) cout << starts1[a] << " " << ends1[a] << ", ";
-      cout << endl;
-      for (int a=0;a<int(starts2.size());++a) cout << starts2[a] << " " << ends2[a] << ", ";
-      cout << endl;
-    }
-    //((M).itStart)=end+1; //Is this needed?
   }
 
 }
@@ -326,6 +303,21 @@ void Arg::construct() {
           }
         }
       }
+      //Find blocks in MRCA struct that have reached a value of zero
+      M.itStart = M.starts.begin();
+      M.itEnd = M.ends.begin();
+      M.itValue = M.values.begin();
+      while (M.itStart != M.starts.end()){
+        if (*M.itValue == 1){
+          removeAncMat(*M.itStart, *M.itEnd, intervalStarts[i], intervalEnds[i]);
+          removeAncMat(*M.itStart, *M.itEnd, intervalStarts[j], intervalEnds[j]);
+          --*M.itValue;
+        }
+        ++M.itStart;
+        ++M.itEnd;
+        ++M.itValue;
+      }
+
       t1=clock();
       combine_ancestries(intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
       t2=clock();
