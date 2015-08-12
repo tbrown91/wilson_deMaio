@@ -88,94 +88,98 @@ void split_ancestries(vector<int> &starts_1, vector<int> &ends_1, vector<int> &s
   ends_1 = tempEnds_1;
 }
 
-void choose_nonClonalRecomb(const vector<double> &prob, const int G, const vector<int> &starts, const vector<int> &ends, int &beg, int &end, const double noStop){
+void choose_nonClonalRecomb(const vector<double> &prob, const int G, const vector<int> &starts, const vector<int> &ends, int &beg, int &end, const double noStop, const int totMaterial, const double recombRate){
   //Choose a recombination interval for the chosen lineage which is non-clonal
   int b=starts.size();
-  //Choose a start site of recombination at random
-  double r_2=gsl_rng_uniform(rng);
-  beg = 0;
-  while (r_2 > prob[beg]){
-    r_2 -= prob[beg];
-    ++beg;
+  double r_1 = (gsl_rng_uniform(rng)*recombRate);
+  int index = 0;
+  while (r_1 > prob[index]){
+    r_1 -= prob[index];
+    ++index;
+    if (index == b) break;
+  }
+  if (index == b){
+    //Choose a start point within the ancestral intervals
+    beg = (int)floor(gsl_rng_uniform(rng)*(totMaterial-b));
+    beg += starts[0]+1;
+    for (int a=0;a<b;++a){
+      if (beg > ends[a]){
+        beg = beg - ends[a] + starts[a+1];
+      }else break;
+    }
+    double r_2 = gsl_rng_uniform(rng);
+    int len = (int)floor(log(1-r_2*(1-pow(noStop,G-1)))/log(noStop));
+    end = (beg + len) % G;
+  }else{
+    //Start of recombination occurs at beginning of an ancestral interval
+    if (index == 0){
+      if ((starts[0] == 0) && (ends.back() == G-1)){
+        //Start site is at beginning of genome inside an ancestral interval
+        beg = 0;
+        double r_2 = gsl_rng_uniform(rng);
+        int len = (int)floor(log(1-r_2*(1-pow(noStop,G-1)))/log(noStop));
+        end = (beg + len) % G;
+      }else{
+        //Interval starts at first interval
+        beg = starts[0];
+        double r_2 = gsl_rng_uniform(rng);
+        int len = (int)floor(log(1-r_2*(1-pow(noStop,ends.back()-starts[0])))/log(noStop));
+        end = (beg + len) % G;
+      }
+    }else{
+      beg = starts[index];
+      //Simulate recombinant break length via a truncated geometric distribution
+      double r_2 = gsl_rng_uniform(rng);
+      int len = (int)floor(log(1-r_2*(1-pow(noStop,G+ends[index-1]-starts[index])))/log(noStop));
+      end = (beg + len) % G;
+    }
   }
   if ((starts[0] == 0) && (ends.back() == G-1)){
-    //Last interval wraps around end of genome
-    //Check if beginning of recombination is at an ancestral interval start site
-    int index = -1;
-    for (int m=1;m<b;++m){
-      if (beg == starts[m]) index = m;
-      break;
-    }
-    if (index > 0){
-      //Recombination interval begins at the start of other interval
-      //Simulate the end-point via a truncated geometric distribution
-      double r_3 = gsl_rng_uniform(rng);
-      int len = floor(log(1-r_3*(1-pow(noStop,G+ends[index-1]-starts[index])))/log(noStop));
-      end = (beg + len) % G;
-    }else{
-      //Recombination interval begins within an ancestral interval
-      //Simulate the end-point via a truncated geometric distribution
-      double r_3 = gsl_rng_uniform(rng);
-      int len = floor(log(1-r_3*(1-pow(noStop,G-1)))/log(noStop));
-      end = (beg + len) % G;
-    }
-    //Check if end of recombinant interval falls between ancestral intervals
-    for (int a=1;a<b;++a){
-      if ((end >= ends[a-1]) && (end < starts[a])){
-        end = ends[a-1];
-        break;
-      }else if (end < ends[a-1]) break;
+    //Ancestral material wraps around end of genome
+    if (b>1){
+      //Check if end of recombinant interval falls between ancestral intervals
+      for (int a=1;a<b;++a){
+        if ((end >= ends[a-1]) && (end < starts[a])){
+          end = ends[a-1];
+          break;
+        }else if (end < ends[a-1]) break;
+      }
     }
   }else{
-    //All intervals are contained within the "linear" genome
-    //Check if beginning of recombination is at an ancestral interval start site
-    int index = -1;
-    for (int m=0;m<b;++m){
-      if (beg == starts[m]) index = m;
-      break;
-    }
-    if (index == 0){
-      //Recombination interval begins at the start of first ancestral interval
-      //Simulate the end-point via a truncated geometric distribution
-      double r_3 = gsl_rng_uniform(rng);
-      int len = floor(log(1-r_3*(1-pow(noStop,ends.back()-starts[0])))/log(noStop));
-      end = (beg + len) % G;
-    }else if (index > 0){
-      //Recombination interval begins at the start of other interval
-      //Simulate the end-point via a truncated geometric distribution
-      double r_3 = gsl_rng_uniform(rng);
-      int len = floor(log(1-r_3*(1-pow(noStop,G+ends[index-1]-starts[index])))/log(noStop));
-      end = (beg + len) % G;
-    }else{
-      //Recombination interval begins within an ancestral interval
-      //Simulate the end-point via a truncated geometric distribution
-      double r_3 = gsl_rng_uniform(rng);
-      int len = floor(log(1-r_3*(1-pow(noStop,G-1)))/log(noStop));
-      end = (beg + len) % G;
-    }
-  }
-  //Check if end of recombinant interval falls between ancestral intervals
-  if (end < starts[0]) end = ends.back();
-  else if (end > ends.back()) end = ends.back();
-  else{
-    for (int a=1;a<b;++a){
-      if ((end >= ends[a-1]) && (end < starts[a])){
-        end = ends[a-1];
-        break;
-      }else if (end < ends[a-1]) break;
+    //Check if end of recombinant interval falls between ancestral intervals
+    if ((end < starts[0]) || (end > ends.back())) end = ends.back();
+    else{
+      for (int a=1;a<b;++a){
+        if ((end >= ends[a-1]) && (end < starts[a])){
+          end = ends[a-1];
+          break;
+        }else if (end < ends[a-1]) break;
+      }
     }
   }
 }
 
-void choose_clonalRecomb(const vector<double> &prob, const int G, const vector<int> &starts, const vector<int> &ends, int &beg, int &end, const double delta){
-  //Choose a recombination interval for the given lineage which is clonal
+void choose_clonalRecomb(const vector<double> &prob, const int G, const vector<int> &starts, const vector<int> &ends, int &beg, int &end, const double delta, const int totMaterial, const double recombRate){
+  //Choose a recombination interval for the chosen lineage which is non-clonal
   int b=starts.size();
-  //Choose a start site of recombination at random
-  double r_2=gsl_rng_uniform(rng);
-  beg = 0;
-  while (r_2 > prob[beg]){
-    r_2 -= prob[beg];
-    ++beg;
+  double r_1 = (gsl_rng_uniform(rng)*recombRate);
+  int index = 0;
+  while (r_1 > prob[index]){
+    r_1 -= prob[index];
+    ++index;
+    if (index == b) break;
+  }
+  if (index == b){
+    //Choose a start point within the ancestral intervals
+    beg = (int)floor(gsl_rng_uniform(rng)*(totMaterial-b));
+    beg += starts[0]+1;
+    for (int a=0;a<b;++a){
+      if (beg > ends[a]){
+        beg = beg - ends[a] + starts[a+1];
+      }else break;
+    }
+  }else{
+    beg = starts[index];
   }
   int len = gsl_ran_geometric(rng,1.0/delta);
   if (len > G-1){

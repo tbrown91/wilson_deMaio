@@ -142,6 +142,7 @@ void Arg::construct() {
   vector<int> blockEnds; //Contains a list of where the blocks end on the genome
   vector<vector<int> > intervalStarts; //A list of all ancestral interval start sites for each node
   vector<vector<int> > intervalEnds;//A list of all ancestral interval end sites for each node
+  vector<int> totMaterial;
 
   //Calculate positions of ancestral blocks with gaps
   blockStarts.push_back(blocks[0]);
@@ -164,7 +165,7 @@ void Arg::construct() {
   intervalEnds.push_back(vector<int>(NULL));
   for (int i=0;i<b;++i){
     intervalStarts.back().push_back(blockStarts[i]);
-    intervalEnds.back().push_back(blockEnds[i]);
+    intervalEnds.back().push_back(blockEnds[i]-1);
   }
   //Initialise MRCA struct
   for (int i=0;i<b;++i){
@@ -173,25 +174,27 @@ void Arg::construct() {
     M.values.push_back(n);//Initialise material for all leaf nodes
   }
   //Calculate probability of recombination at each site
-  probStart.push_back(vector<double>(G,0.0));
+  probStart.push_back(vector<double>(b,0.0));
   recombRates.push_back(0.0);
-  calc_clonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb);
+  totMaterial.push_back(0);
+  calc_clonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb, totMaterial.back());
 
   //Set values for initial nodes of the ARG
   for (int i=1;i<n;i++) {
-      toCoal.push_back(i); //Initial nodes are in the ARG
-      s.push_back(vector<int>(6,-1)); //Create new node
-      ages.push_back(0.0); //Give all nodes an age of 0
-      clonal.push_back(true); //All initial nodes are clonal
-      //Set the probability of starting recombination at each site of the genome
-      probStart.push_back(vector<double>(G,0.0));
-      probStart.back() = probStart[0];
-      recombRates.push_back(0.0);
-      recombRates.back() = recombRates[0];
-      intervalStarts.push_back(vector<int>(NULL));
-      intervalStarts.back() = intervalStarts[0];
-      intervalEnds.push_back(vector<int>(NULL));
-      intervalEnds.back() = intervalEnds[0];
+    toCoal.push_back(i); //Initial nodes are in the ARG
+    s.push_back(vector<int>(6,-1)); //Create new node
+    ages.push_back(0.0); //Give all nodes an age of 0
+    clonal.push_back(true); //All initial nodes are clonal
+    probStart.push_back(vector<double>(b,0.0));
+    probStart.back() = probStart[0];
+    recombRates.push_back(0.0);
+    recombRates.back() = recombRates[0];
+    intervalStarts.push_back(vector<int>(NULL));
+    intervalStarts.back() = intervalStarts[0];
+    intervalEnds.push_back(vector<int>(NULL));
+    intervalEnds.back() = intervalEnds[0];
+    totMaterial.push_back(0);
+    totMaterial.back() = totMaterial[0];
   }
 
   double currentTime=0.0;
@@ -238,11 +241,6 @@ void Arg::construct() {
       {
         int index1=0, index2=0;
         int b1 = intervalStarts[i].size(), b2 = intervalStarts[j].size();
-        // cout << "Children:" << endl;
-        // for (int a=0;a<b1;++a) cout << intervalStarts[i][a] << " " << intervalEnds[i][a] << " ";
-        // cout << endl;
-        // for (int a=0;a<b2;++a) cout << intervalStarts[j][a] << " " << intervalEnds[j][a] << " ";
-        // cout << endl;
         int currentStart1=0, currentStart2=0;
         if ((index1 != b1) && (index2 != b2)) currentStart1=intervalStarts[i][index1], currentStart2=intervalStarts[j][index2];
         while ((index1 != b1) && (index2 != b2)){
@@ -303,9 +301,9 @@ void Arg::construct() {
       t1 = clock();
       //Calculate the recombination rate for the new node
       if (clonal[toCoal[i]] == true){
-        calc_clonalRecomb(G, delta, probStart[i], recombRates[i], intervalStarts[i], intervalEnds[i], noStop, siteRecomb);
+        calc_clonalRecomb(G, delta, probStart[i], recombRates[i], intervalStarts[i], intervalEnds[i], noStop, siteRecomb, totMaterial[i]);
       }else{
-        calc_nonClonalRecomb(G, delta, probStart[i], recombRates[i], intervalStarts[i], intervalEnds[i], noStop, siteRecomb);
+        calc_nonClonalRecomb(G, delta, probStart[i], recombRates[i], intervalStarts[i], intervalEnds[i], noStop, siteRecomb, totMaterial[i]);
       }
       t2=clock();
       recomb_probTime += (t2-t1);
@@ -320,6 +318,8 @@ void Arg::construct() {
       intervalStarts.pop_back();
       intervalEnds[j] = intervalEnds.back();
       intervalEnds.pop_back();
+      totMaterial[j] = totMaterial.back();
+      totMaterial.pop_back();
       --k;
     }else{
       //cout << "Recomb" << endl;
@@ -335,10 +335,14 @@ void Arg::construct() {
       int beg=0, end=0;
       t1=clock();
       if (clonal[toCoal[i]] == true){
-        choose_clonalRecomb(probStart[i], G, intervalStarts[i], intervalEnds[i], beg, end, delta);
+        choose_clonalRecomb(probStart[i], G, intervalStarts[i], intervalEnds[i], beg, end, delta, totMaterial[i], recombRates[i]);
       }else{
-        choose_nonClonalRecomb(probStart[i], G, intervalStarts[i], intervalEnds[i], beg, end, noStop);
+        choose_nonClonalRecomb(probStart[i], G, intervalStarts[i], intervalEnds[i], beg, end, noStop, totMaterial[i], recombRates[i]);
       }
+      // cout << "Ancestral material: " << clonal[toCoal[i]] << endl;
+      // for (int a=0;a<int(intervalStarts[i].size());++a) cout << intervalStarts[i][a] << " " << intervalEnds[i][a] << ", ";
+      // cout << endl;
+      // cout << "Recomb interval " << beg << " " << end << endl << endl;
       t2=clock();
       recomb_intervalTime += (t2-t1);
       //Choose first parent to be clonal if child is clonal
@@ -395,14 +399,15 @@ void Arg::construct() {
       //Calculate recombination rates and start-point probabilities for the new parents
       t1=clock();
       if (clonal[toCoal[i]] == true){
-        calc_clonalRecomb(G, delta, probStart[i], recombRates[i], intervalStarts[i], intervalEnds[i], noStop, siteRecomb);
+        calc_clonalRecomb(G, delta, probStart[i], recombRates[i], intervalStarts[i], intervalEnds[i], noStop, siteRecomb, totMaterial[i]);
       }else{
-        calc_nonClonalRecomb(G, delta, probStart[i], recombRates[i], intervalStarts[i], intervalEnds[i], noStop, siteRecomb);
+        calc_nonClonalRecomb(G, delta, probStart[i], recombRates[i], intervalStarts[i], intervalEnds[i], noStop, siteRecomb, totMaterial[i]);
       }
       //And for non-clonal parent
       recombRates.push_back(0.0);
-      probStart.push_back(vector<double>(G,0.0));
-      calc_nonClonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb);
+      probStart.push_back(vector<double>(b,0.0));
+      totMaterial.push_back(0);
+      calc_nonClonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb, totMaterial.back());
       t2=clock();
       recomb_probTime += (t2-t1);
       ++k;
