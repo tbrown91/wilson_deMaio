@@ -2,99 +2,102 @@
 #define RECOMB_EVENT
 #include <math.h>
 
-void split_ancestries(vector<int> &starts_1, vector<int> &ends_1, vector<int> &starts_2, vector<int> &ends_2, const int beg, const int end){
+void split_ancestries(list<int> &starts_1, list<int> &ends_1, list<int> &starts_2, list<int> &ends_2, const int beg, const int end){
   //Split the ancestry of the recombinant node into two, extracting the recombinant interval
-  int b = starts_1.size();
-  vector<int> tempStarts_1;
-  vector<int> tempEnds_1;
+  list<int>::iterator itStart1=starts_1.begin(), itEnd1=ends_1.begin();
   if (beg <= end){
     //Recombinant break does not wrap around the end of the genome
-    for (int a=0;a<b;++a){
-      //Find the interval containing the start and end points of the recombinant interval
-      if ((beg > ends_1[a]) || (end < starts_1[a])){
-        //Ancestral interval is not in recombinant break
-        tempStarts_1.push_back(starts_1[a]);
-        tempEnds_1.push_back(ends_1[a]);
-      }else if((beg <= starts_1[a]) && (end >= ends_1[a])){
-        //Recombinant break takes entire ancestral interval
-        starts_2.push_back(starts_1[a]);
-        ends_2.push_back(ends_1[a]);
-      }else if((beg <= starts_1[a]) && (end >= starts_1[a])){
-        //Break falls at start of ancestral interval
-        starts_2.push_back(starts_1[a]);
-        ends_2.push_back(end);
-        tempStarts_1.push_back(end+1);
-        tempEnds_1.push_back(ends_1[a]);
-      }else if((beg <= ends_1[a]) && (end >= ends_1[a])){
-        //Break falls at end of ancestral interval
-        tempStarts_1.push_back(starts_1[a]);
-        tempEnds_1.push_back(beg-1);
-        starts_2.push_back(beg);
-        ends_2.push_back(ends_1[a]);
-      }else{
-        //Break falls inside ancestral interval
-        tempStarts_1.push_back(starts_1[a]);
-        tempEnds_1.push_back(beg-1);
-        starts_2.push_back(beg);
-        ends_2.push_back(end);
-        tempStarts_1.push_back(end+1);
-        tempEnds_1.push_back(ends_1[a]);
+      while (itStart1!=starts_1.end()){
+        //Find the interval containing the start and end points of the recombinant interval
+        if (end < *itStart1) return; //No more intervals affected by recombinant interval
+        else if (beg > *itEnd1){
+          //Ancestral interval is not in recombinant break
+          ++itStart1;
+          ++itEnd1;
+        }else if ((beg <= *itStart1) && (end >= *itEnd1)){
+          //Recombinant break takes entire ancestral interval
+          starts_2.push_back(*itStart1);
+          ends_2.push_back(*itEnd1);
+          itStart1 = starts_1.erase(itStart1);
+          itEnd1 = ends_1.erase(itEnd1);
+        }else if ((beg <= *itStart1) && (end >= *itStart1)){
+          //Break falls at start of ancestral interval
+          starts_2.push_back(*itStart1);
+          ends_2.push_back(end);
+          *itStart1 = end+1;
+          return; //No more ancestral inervals to check
+        }else if ((beg <= *itEnd1) && (end >= *itEnd1)){
+          //Break falls at end of ancestral interval
+          starts_2.push_back(beg);
+          ends_2.push_back(*itEnd1);
+          *itEnd1 = beg - 1;
+          ++itStart1;
+          ++itEnd1;
+        }else{
+          //Break falls inside ancestral interval
+          starts_2.push_back(beg);
+          ends_2.push_back(end);
+          ends_1.insert(itEnd1,beg-1);
+          ++itStart1;
+          starts_1.insert(itStart1,end+1);
+          return;//No more ancestral inervals to check
+        }
       }
-    }
   }else{
     //Recombinant break wraps around the end of the genome
-    if (beg == (end+1)){
+    if (beg == (end + 1)){
       //Recombinant interval takes entire genome
       starts_2 = starts_1;
       ends_2 = ends_1;
-    }
-    else{
-      for (int a=0;a<b;++a){
-        if (end >= ends_1[a]){
-          //Break covers the ancestral inerval at the start
-          starts_2.push_back(starts_1[a]);
-          ends_2.push_back(ends_1[a]);
-        }else if (beg <= starts_1[a]){
-          //Break covers the ancestral inerval at the end
-          starts_2.push_back(starts_1[a]);
-          ends_2.push_back(ends_1[a]);
-        }else if ((end >= starts_1[a]) && (beg <= ends_1[a])){
+      starts_1.clear();
+      ends_1.clear();
+    }else{
+      while (itStart1 != starts_1.end()){
+        if ((end >= *itEnd1) || (beg <= *itStart1)){
+          //Break covers the ancestral interval
+          starts_2.push_back(*itStart1);
+          ends_2.push_back(*itEnd1);
+          itStart1 = starts_1.erase(itStart1);
+          itEnd1 = ends_1.erase(itEnd1);
+        }else if ((end >= *itStart1) && (beg <= *itEnd1)){
           //Break covers start and end of interval
-          starts_2.push_back(starts_1[a]);
+          starts_2.push_back(*itStart1);
           ends_2.push_back(end);
-          tempStarts_1.push_back(end+1);
-          tempEnds_1.push_back(beg-1);
           starts_2.push_back(beg);
-          ends_2.push_back(ends_1[a]);
-        }else if (((end >= starts_1[a]) && (end < ends_1[a])) && (beg > ends_1[a])){
+          ends_2.push_back(*itEnd1);
+          *itStart1 = end+1;
+          *itEnd1 = beg-1;
+          ++itStart1;
+          ++itEnd1;
+        }else if ((end >= *itStart1) && (end < *itEnd1)){
           //Break falls across an interval at the start
-          starts_2.push_back(starts_1[a]);
+          starts_2.push_back(*itStart1);
           ends_2.push_back(end);
-          tempStarts_1.push_back(end+1);
-          tempEnds_1.push_back(ends_1[a]);
-        }else if (((beg <= ends_1[a]) && (beg > starts_1[a])) && (end < starts_1[a])){
+          *itStart1 = end+1;
+          ++itStart1;
+          ++itEnd1;
+        }else if ((beg <= *itEnd1) && (beg > *itStart1)){
           //Break falls across an interval at the end
-          tempStarts_1.push_back(starts_1[a]);
-          tempEnds_1.push_back(beg-1);
           starts_2.push_back(beg);
-          ends_2.push_back(ends_1[a]);
+          ends_2.push_back(*itEnd1);
+          *itEnd1 = beg - 1;
+          ++itStart1;
+          ++itEnd1;
         }else{
-          //Break does not cover ancestral inerval
-          tempStarts_1.push_back(starts_1[a]);
-          tempEnds_1.push_back(ends_1[a]);
+          ++itEnd1;
+          ++itStart1;
         }
       }
     }
   }
-  starts_1 = tempStarts_1;
-  ends_1 = tempEnds_1;
 }
 
-void choose_nonClonalRecomb(const vector<double> &prob, const int G, const vector<int> &starts, const vector<int> &ends, int &beg, int &end, const double noStop, const int totMaterial, const double recombRate){
+void choose_nonClonalRecomb(const vector<double> &prob, const int G, const list<int> &starts, const list<int> &ends, int &beg, int &end, const double noStop, const int totMaterial, const double recombRate){
   //Choose a recombination interval for the chosen lineage which is non-clonal
   int b=starts.size();
   double r_1 = (gsl_rng_uniform(rng)*recombRate);
   int index = 0;
+  list<int>::const_iterator itStart = starts.begin(), itEnd = ends.begin();
   while (r_1 > prob[index]){
     r_1 -= prob[index];
     ++index;
@@ -103,11 +106,13 @@ void choose_nonClonalRecomb(const vector<double> &prob, const int G, const vecto
   if (index == b){
     //Choose a start point within the ancestral intervals
     beg = (int)floor(gsl_rng_uniform(rng)*(totMaterial-b));
-    beg += starts[0]+1;
-    for (int a=0;a<b;++a){
-      if (beg > ends[a]){
-        beg = beg - ends[a] + starts[a+1];
+    beg += *itStart+1;
+    ++itStart;
+    for (itEnd=ends.begin();itEnd!=ends.end();++itEnd){
+      if (beg > *itEnd){
+        beg = beg - *itEnd + *itStart;
       }else break;
+      ++itStart;
     }
     double r_2 = gsl_rng_uniform(rng);
     int len = (int)floor(log(1-r_2*(1-pow(noStop,G-1)))/log(noStop));
@@ -115,7 +120,7 @@ void choose_nonClonalRecomb(const vector<double> &prob, const int G, const vecto
   }else{
     //Start of recombination occurs at beginning of an ancestral interval
     if (index == 0){
-      if ((starts[0] == 0) && (ends.back() == G-1)){
+      if ((starts.front() == 0) && (ends.back() == G-1)){
         //Start site is at beginning of genome inside an ancestral interval
         beg = 0;
         double r_2 = gsl_rng_uniform(rng);
@@ -123,49 +128,62 @@ void choose_nonClonalRecomb(const vector<double> &prob, const int G, const vecto
         end = (beg + len) % G;
       }else{
         //Interval starts at first interval
-        beg = starts[0];
+        beg = starts.front();
         double r_2 = gsl_rng_uniform(rng);
-        int len = (int)floor(log(1-r_2*(1-pow(noStop,ends.back()-starts[0])))/log(noStop));
+        int len = (int)floor(log(1-r_2*(1-pow(noStop,ends.back()-starts.front())))/log(noStop));
         end = (beg + len) % G;
       }
     }else{
-      beg = starts[index];
+      itStart = starts.begin();
+      itEnd = ends.begin();
+      advance(itEnd,index-1);
+      advance(itStart,index);
+      beg = *itStart;
       //Simulate recombinant break length via a truncated geometric distribution
       double r_2 = gsl_rng_uniform(rng);
-      int len = (int)floor(log(1-r_2*(1-pow(noStop,G+ends[index-1]-starts[index])))/log(noStop));
+      int len = (int)floor(log(1-r_2*(1-pow(noStop,G+*itEnd-*itStart)))/log(noStop));
       end = (beg + len) % G;
     }
   }
-  if ((starts[0] == 0) && (ends.back() == G-1)){
+  itStart = starts.begin();
+  itEnd = ends.begin();
+  if ((starts.front() == 0) && (ends.back() == G-1)){
     //Ancestral material wraps around end of genome
     if (b>1){
       //Check if end of recombinant interval falls between ancestral intervals
-      for (int a=1;a<b;++a){
-        if ((end >= ends[a-1]) && (end < starts[a])){
-          end = ends[a-1];
+      ++itStart;
+      while (itStart!=starts.end()){
+        if ((end >= *itEnd) && (end < *itStart)){
+          end = *itEnd;
           break;
-        }else if (end < ends[a-1]) break;
+        }else if (end < *itEnd) break;
+        ++itEnd;
+        ++itStart;
       }
     }
   }else{
     //Check if end of recombinant interval falls between ancestral intervals
-    if ((end < starts[0]) || (end > ends.back())) end = ends.back();
+    if ((end < starts.front()) || (end > ends.back())) end = ends.back();
     else{
-      for (int a=1;a<b;++a){
-        if ((end >= ends[a-1]) && (end < starts[a])){
-          end = ends[a-1];
+      ++itStart;
+      while(itStart!=starts.end()){
+        if ((end >= *itEnd) && (end < *itStart)){
+          end = *itEnd;
           break;
-        }else if (end < ends[a-1]) break;
+        }else if (end < *itEnd) break;
+        ++itEnd;
+        ++itStart;
       }
     }
   }
 }
 
-void choose_clonalRecomb(const vector<double> &prob, const int G, const vector<int> &starts, const vector<int> &ends, int &beg, int &end, const double delta, const int totMaterial, const double recombRate){
+void choose_clonalRecomb(const vector<double> &prob, const int G, const list<int> &starts, const list<int> &ends, int &beg, int &end, const double delta, const int totMaterial, const double recombRate){
   //Choose a recombination interval for the chosen lineage which is non-clonal
   int b=starts.size();
   double r_1 = (gsl_rng_uniform(rng)*recombRate);
   int index = 0;
+  list<int>::const_iterator itStart = starts.begin(), itEnd = ends.begin();
   while (r_1 > prob[index]){
     r_1 -= prob[index];
     ++index;
@@ -174,40 +192,52 @@ void choose_clonalRecomb(const vector<double> &prob, const int G, const vector<i
   if (index == b){
     //Choose a start point within the ancestral intervals
     beg = (int)floor(gsl_rng_uniform(rng)*(totMaterial-b));
-    beg += starts[0]+1;
-    for (int a=0;a<b;++a){
-      if (beg > ends[a]){
-        beg = beg - ends[a] + starts[a+1];
+    beg += starts.front()+1;
+    itStart = starts.begin();
+    ++itStart;
+    for (itEnd=ends.begin();itEnd!=ends.end();++itEnd){
+      if (beg > *itEnd){
+        beg = beg - *itEnd + *itStart;
       }else break;
+      ++itStart;
     }
   }else{
-    beg = starts[index];
+    advance(itStart,index);
+    beg = *itStart;
   }
   int len = gsl_ran_geometric(rng,1.0/delta);
   if (len > G-1){
     len = G-1;
   }
   end = (beg + len) % G;
-  if ((starts[0] == 0) && (ends.back() == G-1)){
+  itStart = starts.begin();
+  itEnd = ends.begin();
+  if ((starts.front() == 0) && (ends.back() == G-1)){
     //Ancestral material wraps around end of genome
     if (b>1){
       //Check if end of recombinant interval falls between ancestral intervals
-      for (int a=1;a<b;++a){
-        if ((end >= ends[a-1]) && (end < starts[a])){
-          end = ends[a-1];
+      ++itStart;
+      while (itStart != starts.end()){
+        if ((end >= *itEnd) && (end < *itStart)){
+          end = *itEnd;
           break;
-        }else if (end < ends[a-1]) break;
+        }else if (end < *itEnd) break;
+        ++itEnd;
+        ++itStart;
       }
     }
   }else{
     //Check if end of recombinant interval falls between ancestral intervals
-    if ((end < starts[0]) || (end > ends.back())) end = ends.back();
+    if ((end < starts.front()) || (end > ends.back())) end = ends.back();
     else{
-      for (int a=1;a<b;++a){
-        if ((end >= ends[a-1]) && (end < starts[a])){
-          end = ends[a-1];
+      ++itStart;
+      while (itStart != starts.end()){
+        if ((end >= *itEnd) && (end < *itStart)){
+          end = *itEnd;
           break;
-        }else if (end < ends[a-1]) break;
+        }else if (end < *itEnd) break;
+        ++itEnd;
+        ++itStart;
       }
     }
   }

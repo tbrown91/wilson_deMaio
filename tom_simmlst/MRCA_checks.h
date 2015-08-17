@@ -1,32 +1,39 @@
 #ifndef MRCA_CHECKS
 #define MRCA_CHECKS
 
-void removeAncMat(const int start, const int end, vector<int> &starts, vector<int> &ends){
+void removeAncMat(const int start, const int end, list<int> &starts, list<int> &ends){
   //Reove MRCA material from chosen nodes
-  vector<int> tempStarts;
-  vector<int> tempEnds;
-  for (size_t a=0;a<starts.size();++a){
-    if ((end < starts[a]) || (start > ends[a])){
-      tempStarts.push_back(starts[a]);
-      tempEnds.push_back(ends[a]);
-    }else if ((start <= starts[a]) && (end >= starts[a])){
-      if (end < ends[a]){
-        tempStarts.push_back(end+1);
-        tempEnds.push_back(ends[a]);
+  list<int>::iterator itStart=starts.begin(), itEnd = ends.begin();
+  while (itEnd!=ends.end()){
+    if (end < *itStart) return; //No more ancestral material to check
+    else if (start <= *itStart){
+      if (end >= *itEnd){
+        //Entire interval to be removed
+        itStart = starts.erase(itStart);
+        itEnd = ends.erase(itEnd);
+      }else{
+        //Start of interval to be removed
+        *itStart = end + 1;
+        return; //No more ancestral material to check
       }
-      //Otherwise remove interval from ancestral material
-    }else if ((end >= ends[a]) && (start <= ends[a])){
-      tempStarts.push_back(starts[a]);
-      tempEnds.push_back(start-1);
-    }else if ((start > starts[a]) && (end < ends[a])){
-      tempStarts.push_back(starts[a]);
-      tempEnds.push_back(start-1);
-      tempStarts.push_back(end+1);
-      tempEnds.push_back(ends[a]);
+    }else if (start <= *itEnd){
+      if (end >= *itEnd){
+        //End of interval to be removed
+        *itEnd = start - 1;
+        ++itStart;
+        ++itEnd;
+      }else{
+        //Middle of interval to be removed
+        ends.insert(itEnd,start - 1);
+        ++itStart;
+        starts.insert(itStart,end + 1);
+        return;//No more material to check;
+      }
+    }else{
+        ++itStart;
+        ++itEnd;
     }
   }
-  starts = tempStarts;
-  ends = tempEnds;
 }
 
 void modifyMRCA(Arg::MRCA &M, const int start, const int end){
@@ -49,6 +56,8 @@ void modifyMRCA(Arg::MRCA &M, const int start, const int end){
 	}
 	if (start<*(M.itStart)){
 		cout << "Error : this part should be in the MRCA vector, but it isn't (3)" << start << " " << *M.itStart << endl;
+    int a;
+    cin >> a;
     return;
 	}
 	//first element in MRCA list that overlaps, but starting values do not coincide
@@ -77,42 +86,48 @@ void modifyMRCA(Arg::MRCA &M, const int start, const int end){
   }
 }
 
-void update_MRCA(Arg::MRCA &M, vector<int> &starts_1, vector<int> &ends_1, vector<int> &starts_2, vector<int> &ends_2){
+void update_MRCA(Arg::MRCA &M, const list<int> &starts_1, const list<int> &ends_1, const list<int> &starts_2, const list<int> &ends_2){
   //Find overlapping regions of ancestral material in the two children and update the MRCA lists
-  int index1=0, index2=0;
-  int b1 = starts_1.size(), b2 = starts_2.size();
+  if ((starts_1.size() == 0) || (starts_2.size() == 0)) return; //No ancestral material in one or both nodes, therefore MRCA struct does not need to be updated
+  list<int>::const_iterator itStart1 = starts_1.begin(), itStart2 = starts_2.begin(), itEnd1 = ends_1.begin(), itEnd2 = ends_2.begin();
   int currentStart1=0, currentStart2=0;
-  if ((index1 != b1) && (index2 != b2)) currentStart1=starts_1[index1], currentStart2=starts_2[index2];
-  while ((index1 != b1) && (index2 != b2)){
-    if ((currentStart1 < currentStart2) && (ends_1[index1]>=currentStart2)){ //overlap
+  currentStart1=*itStart1, currentStart2=*itStart2;
+  while ((itStart1 != starts_1.end()) && (itStart2 != starts_2.end())){
+    if ((currentStart1 < currentStart2) && (*itEnd1>=currentStart2)){ //overlap
       currentStart1=currentStart2;
-    }else if ((currentStart2 < currentStart1) && (ends_2[index2]>=currentStart1)){ //overlap
+    }else if ((currentStart2 < currentStart1) && (*itEnd2>=currentStart1)){ //overlap
       currentStart2=currentStart1;
-    }else if ((currentStart1 < currentStart2) && (ends_1[index1]<currentStart2)){ //no overlap
-      ++index1;
-      if (index1<b1) currentStart1=starts_1[index1];
-    }else if ((currentStart2 < currentStart1) && (ends_2[index2]<currentStart1)){ //no overlap
-      ++index2;
-      if (index2<b2) currentStart2=starts_2[index2];
-    }else if ((currentStart1 == currentStart2) && (ends_1[index1]<ends_2[index2])){ //overlap, same start
-      modifyMRCA(M, currentStart1, ends_1[index1]);
-      currentStart2=ends_1[index1]+1;
-      ++index1;
-      if (index1<b1) currentStart1=starts_1[index1];
-    }else if ((currentStart1 == currentStart2) && (ends_2[index2]<ends_1[index1])){ //overlap, same start
-      modifyMRCA(M, currentStart1, ends_2[index2]);
-      currentStart1=ends_2[index2]+1;
-      ++index2;
-      if (index2<b2) currentStart2=starts_2[index2];
-    }else if ((currentStart1 == currentStart2) && (ends_2[index2]==ends_1[index1])){ //overlap, same start, same end
-      modifyMRCA(M, currentStart1, ends_1[index1]);
-      ++index2;
-      if (index2<b2) currentStart2=starts_2[index2];
-      ++index1;
-      if (index1<b1) currentStart1=starts_1[index1];
+    }else if ((currentStart1 < currentStart2) && (*itEnd1<currentStart2)){ //no overlap
+      ++itStart1;
+      ++itEnd1;
+      if (itStart1!=starts_1.end()) currentStart1=*itStart1;
+    }else if ((currentStart2 < currentStart1) && (*itEnd2<currentStart1)){ //no overlap
+      ++itStart2;
+      ++itEnd2;
+      if (itStart2 != starts_2.end()) currentStart2=*itStart2;
+    }else if ((currentStart1 == currentStart2) && (*itEnd1<*itEnd2)){ //overlap, same start
+      modifyMRCA(M, currentStart1, *itEnd1);
+      currentStart2=*itEnd1+1;
+      ++itStart1;
+      ++itEnd1;
+      if (itStart1 != starts_1.end()) currentStart1=*itStart1;
+    }else if ((currentStart1 == currentStart2) && (*itEnd2<*itEnd1)){ //overlap, same start
+      modifyMRCA(M, currentStart1, *itEnd2);
+      currentStart1=*itEnd2+1;
+      ++itStart2;
+      ++itEnd2;
+      if (itStart2 != starts_2.end()) currentStart2=*itStart2;
+    }else if ((currentStart1 == currentStart2) && (*itEnd2==*itEnd1)){ //overlap, same start, same end
+      modifyMRCA(M, currentStart1, *itEnd1);
+      ++itStart2;
+      ++itEnd2;
+      if (itStart2 != starts_2.end()) currentStart2=*itStart2;
+      ++itStart1;
+      ++itEnd1;
+      if (itStart1 != starts_1.end()) currentStart1=*itStart1;
     }else{
       cout << "Error : this case should not happen in updating MRCA vector" << endl;
-      break;
+      return;
     }
   }
 }
