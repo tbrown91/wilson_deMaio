@@ -58,7 +58,7 @@ void Arg::construct() {
 
   //Set values for the first node to be copied into all other leaves
   toCoal.push_back(0);
-  s.push_back(vector<int>(6.-1));
+  s.push_back(vector<int>(6,-1));
   ages.push_back(0.0);
   clonal.push_back(true);
   //Create ancestral intervals
@@ -297,18 +297,28 @@ Data * Arg::drawData(double theta) {
   int L=blocks.back();
   vector<string*> genotypes(s.size(),NULL);
   genotypes[s.size()-1]=new string(L,'N');
-  for (int j=0;j<L;++j) genotypes[s.size()-1]->at(j)=floor(gsl_rng_uniform(rng)*4);
+  for (int j=0;j<L;++j) genotypes[s.size()-1]->at(j)=floor(gsl_rng_uniform(rng)*4);//Randomly simulate the genome of the MRCA
   for (int i=s.size()-2;i>=0;--i) {
       genotypes[i]=new string(*(genotypes[s[i][2]]));//Copy data from first parent
+      //If parent's first child is a leaf, or the genotype of the first parent's first child is NULL AND the same for the first parent's second child:
       if ((s[s[i][2]][0]<0 || genotypes[s[s[i][2]][0]]!=NULL) && (s[s[i][2]][1]<0 || genotypes[s[s[i][2]][1]]!=NULL)) {
+          //Delete the genotype of the parent and put the genotype of the parent as done
           delete(genotypes[s[i][2]]);
           genotypes[s[i][2]]=&done;
         }
       if (s[i][3]>0) {//If there is a second parent, copy the imported fragment
-          int beg=s[s[i][3]][4];
-          int  nd=s[s[i][3]][5];
-          for (int j=beg;j<nd;j++) genotypes[i]->at(j)=genotypes[s[i][3]]->at(j);
+          int beg=s[s[i][3]][4];//Start of import
+          int  nd=s[s[i][3]][5];//End of import
+          if (beg <= nd){
+            //Import contained within genome
+            for (int j=beg;j<nd;++j) genotypes[i]->at(j)=genotypes[s[i][3]]->at(j);//Copy the genotypes of the second parent for the imported fragment
+          }else{
+            //Import wraps around end of genome
+            for (int j=0;j<nd;++j) genotypes[i]->at(j)=genotypes[s[i][3]]->at(j);
+            for (int j=beg;j<L;++j) genotypes[i]->at(j)=genotypes[s[i][3]]->at(j);
+          }
           if ((s[s[i][3]][0]<0 || genotypes[s[s[i][3]][0]]!=NULL) && (s[s[i][3]][1]<0 || genotypes[s[s[i][3]][1]]!=NULL)) {
+            //Second parent's children are either leaves or NULL, therefore finished with parent
               delete(genotypes[s[i][3]]);
               genotypes[s[i][3]]=&done;
             }
@@ -317,7 +327,7 @@ Data * Arg::drawData(double theta) {
       int nbmuts=gsl_ran_poisson(rng,theta/2.0*(ages[s[i][2]]-ages[i]));
       for (int m=0;m<nbmuts;m++) {
           int loc=floor(gsl_rng_uniform(rng)*L);
-          genotypes[i]->at(loc)=(genotypes[i]->at(loc)+1+(int)floor(gsl_rng_uniform(rng)*3))%4;
+          genotypes[i]->at(loc)=(genotypes[i]->at(loc)+1+(int)floor(gsl_rng_uniform(rng)*3))%4;//Add the mutations randomly based on a poission process
         }
     }
   //Create data object
@@ -337,22 +347,22 @@ string Arg::extractCG() {
   //Second remove nodes with a single son, updating the branching matrix accordingly
   for (int i=n;i<(int)s.size();++i) {
       if (s4[i]==false) continue;
-      if (s[i][0]<0 || s4[s[i][0]]==false) swap(s[i][0],s[i][1]);
+      if (s[i][0]<0 || s4[s[i][0]]==false) swap(s[i][0],s[i][1]);//If first child is a leaf or non-clonal swap the nodes
       if (s[i][1]<0 || s4[s[i][1]]==false) {
           s4[i]=false;
           if (s[i][0]>=0) {
-              s[s[i][0]][2]=s[i][2];
+              s[s[i][0]][2]=s[i][2];//Set the first parent of the node as the first parent of its first child
               if (s[i][2]>=0) {
-                  if (s[s[i][2]][0]==i) s[s[i][2]][0]=s[i][0];
-                  else s[s[i][2]][1]=s[i][0];
+                  if (s[s[i][2]][0]==i) s[s[i][2]][0]=s[i][0];//If the node is its own first parent's first child, set the first child of its first parent as its own first child
+                  else s[s[i][2]][1]=s[i][0];//Otherwise the second child is its own first child
                 }
             }
         }
     }
   //Find new root
-  int ii=s.size()-1;while (s4[ii]==false) --ii;
-  if (s[ii][0]<0 || s4[s[ii][0]]==false || s[ii][1]<0 || s4[s[ii][1]]==false) s4[ii]=false;
-  while (s4[ii]==false) --ii;
+  int ii=s.size()-1;while (s4[ii]==false) --ii;//Find the highest clonal node on the ARG
+  if (s[ii][0]<0 || s4[s[ii][0]]==false || s[ii][1]<0 || s4[s[ii][1]]==false) s4[ii]=false;//If root's first child is a node OR the first child is non-clonal OR the same for the second child, the root is non-clonal
+  while (s4[ii]==false) --ii;//Find new root
   //Construct tree from root
   string str=buildTree(ii).append(";");
   s=s2;
@@ -365,33 +375,38 @@ string Arg::extractLT(int site) {
   //First add all nodes which are ancestral for the given site
   for (int k=0;k<n;++k) s4[k]=true;
   for (unsigned int k=0;k<s4.size()-1;++k) {
-      if (s4[k]==false) continue;
-      if (s[k][3]==-1) s4[s[k][2]]=true;else {
+      if (s4[k]==false) continue;//Node not included
+      if (s[k][3]==-1) s4[s[k][2]]=true;else {//If node has only one child, set the first child as true
         int beg=s[s[k][3]][4];
         int  nd=s[s[k][3]][5];
-        if (site>=beg && site<nd) s4[s[k][3]]=true;else s4[s[k][2]]=true;
+        //Set equal to true if the site of interest is included in the imported interval
+        if (beg <= nd){
+          if (site>=beg && site<nd) s4[s[k][3]]=true;else s4[s[k][2]]=true;
+        }else{
+          if ((site <= nd) || (site >= beg)) s4[s[k][3]]=true;else s4[s[k][2]]=true;
+        }
       }
     }
 //Second remove nodes with a single son, updating the branching matrix accordingly
 for (int i=n;i<(int)s.size();++i) {
-      if (s4[i]==false) continue;
-      if (s[i][2]<0 || s4[s[i][2]]==false) swap(s[i][2],s[i][3]);
-      if (s[i][0]<0 || s4[s[i][0]]==false) swap(s[i][0],s[i][1]);
-      if (s[i][1]<0 || s4[s[i][1]]==false) {
-          s4[i]=false;
-          if (s[i][0]>=0) {
-              s[s[i][0]][2]=s[i][2];
-              if (s[i][2]>=0) {
-                  if (s[s[i][2]][0]==i) s[s[i][2]][0]=s[i][0];
-                  else s[s[i][2]][1]=s[i][0];
+      if (s4[i]==false) continue;//Node not included for site
+      if (s[i][2]<0 || s4[s[i][2]]==false) swap(s[i][2],s[i][3]);//If first parent is a leaf or not included, swap parents
+      if (s[i][0]<0 || s4[s[i][0]]==false) swap(s[i][0],s[i][1]);//If first child is a leaf or not include, swap children
+      if (s[i][1]<0 || s4[s[i][1]]==false) {//If second child is a leaf or not included
+          s4[i]=false;//Set current node to false
+          if (s[i][0]>=0) {//If there is a first child now
+              s[s[i][0]][2]=s[i][2];//Set first parent of child as first parent of current node
+              if (s[i][2]>=0) {//If first parent exists
+                  if (s[s[i][2]][0]==i) s[s[i][2]][0]=s[i][0];//If the current node is its first parent's first child, set first child as parent's first child
+                  else s[s[i][2]][1]=s[i][0];//Otherwise set first child as first parent's second child
                 }
             }
         }
     }
   //Find new root
   int ii=s.size()-1;while (s4[ii]==false) --ii;
-  if (s[ii][0]<0 || s4[s[ii][0]]==false || s[ii][1]<0 || s4[s[ii][1]]==false) s4[ii]=false;
-  while (s4[ii]==false) ii--;
+  if (s[ii][0]<0 || s4[s[ii][0]]==false || s[ii][1]<0 || s4[s[ii][1]]==false) s4[ii]=false;//If children of new root are leaves or not included, remove current root
+  while (s4[ii]==false) ii--;//Fidn new root
   //Construct tree from root
   string str=buildTree(ii).append(";");
   s=s2;
@@ -435,9 +450,19 @@ void Arg::outputDOT(ostream * out,bool am) {
           if (s[i][1]>=0) {//Father of two sons
               for (int k=0;k<L;++k) ancmat.back()[k]=ancmat[s[i][0]][k]||ancmat[s[i][1]][k];
             } else if (s[s[i][0]][2]==i) //recipient
-          for (int k=0;k<L;++k) {if (k>=s[s[s[i][0]][3]][4]&&k<s[s[s[i][0]][3]][5]) ancmat.back()[k]=false;}
+          for (int k=0;k<L;++k) {
+            if (s[s[s[i][0]][3]][4]<=s[s[s[i][0]][3]][5]){
+              if (k>=s[s[s[i][0]][3]][4]&&k<=s[s[s[i][0]][3]][5]) ancmat.back()[k]=false;
+            }else{
+              if (k<=s[s[s[i][0]][3]][5]||k>=s[s[s[i][0]][3]][4]) ancmat.back()[k]=false;
+            }
+          }
           else//donor
-          for (int k=0;k<L;++k) {if (k<s[i][4]||k>=s[i][5]) ancmat.back()[k]=false;}
+          if (s[i][4] <= s[i][5]){
+            for (int k=0;k<L;++k) {if (k<s[i][4]||k>s[i][5]) ancmat.back()[k]=false;}
+          }else{
+            for (int k=0;k<L;++k) {if (k>s[i][5]&&k<s[i][5]) ancmat.back()[k]=false;}
+          }
         }
       *out<<i+1<<"[shape=plaintext,label=<<table CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\" BORDER=\"0\">";
       *out<<"<tr><td HEIGHT=\""<<lwd<<"\" COLSPAN=\""<<floor(ma/skip)+4<<"\" bgcolor=\"white\"></td></tr>";
