@@ -4,7 +4,6 @@
 #include "coal_event.h"
 #include "recomb_event.h"
 #include "recomb_prob.h"
-#include "calc_intervals.h"
 #include "MRCA_checks.h"
 //
 
