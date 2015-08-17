@@ -49,6 +49,15 @@ class Arg {
           };
         return v;
       }
+      // MRCA Keeps track along the genome of how many lineages (in values) have that interval (limited by starts and ends) in the ancestral material. Sites that reach MRCA will have a value of 1.
+      struct MRCA {
+          list<int> starts;
+          list<int> ends;
+          list<int> values;
+          list<int>::iterator itStart;
+          list<int>::iterator itEnd;
+          list<int>::iterator itValue;
+      };
     protected:
       void construct();///<Construction of the ARG, called by class constructor
       int n;///<Number of isolates
@@ -60,7 +69,7 @@ class Arg {
       vector<double> ages;///<Ages of the nodes in the ARG
       vector<bool> clonal;///<Whether a node is part of the clonal genealogy or not
       vector<bool> changeLT;///<Indicates whether the local tree change at the sites
-      // MRCA Keeps track along the genome of how many lineages (in values) have that interval (limited by starts and ends) in the ancestral material. Sites that reach MRCA will have a value of 1.
+
       // Iterators point at the particular interval that is considered at preset (useful for functions that explore it).
       string buildTree(int r);
       PopSize * popsize;///<Model for population size

@@ -1,3 +1,5 @@
+#ifndef RECOMB_EVENT
+#define RECOMB_EVENT
 #include <math.h>
 
 void split_ancestries(vector<int> &starts_1, vector<int> &ends_1, vector<int> &starts_2, vector<int> &ends_2, const int beg, const int end){
@@ -210,3 +212,4 @@ void choose_clonalRecomb(const vector<double> &prob, const int G, const vector<i
     }
   }
 }
+#endif

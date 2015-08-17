@@ -1,3 +1,5 @@
+#ifndef RECOMB_PROB
+#define RECOMB_PROB
 #include <math.h>
 
 void calc_nonClonalRecomb(const int G, const double delta, vector<double> &prob, double &recombRate, const vector<int> &starts, const vector<int> &ends, const double noStop, const double siteRecomb, int &totMaterial){
@@ -75,3 +77,4 @@ void calc_clonalRecomb(const int G, const double delta, vector<double> &prob, do
     recombRate += siteRecomb*(totMaterial-b);
   }
 }
+#endif

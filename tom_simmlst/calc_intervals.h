@@ -1,3 +1,6 @@
+#ifndef CALC_INTERVALS
+#define CALC_INTERVALS
+
 void calc_intervals(const vector<bool> &AncMat, vector<int> &intervalStarts, vector<int> &intervalEnds, const vector<int> &blockStarts, const vector<int> &blockEnds, const int b){
   //Calculate the intervals of ancestral material for the given node
   if (b == 1){
@@ -65,3 +68,4 @@ void calc_intervals(const vector<bool> &AncMat, vector<int> &intervalStarts, vec
     }
   }
 }
+#endif

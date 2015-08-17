@@ -5,16 +5,8 @@
 #include "recomb_event.h"
 #include "recomb_prob.h"
 #include "calc_intervals.h"
-//#include "updateMRCA.h"
+#include "MRCA_checks.h"
 //
-struct MRCA {
-    list<int> starts;
-    list<int> ends;
-    list<int> values;
-    list<int>::iterator itStart;
-    list<int>::iterator itEnd;
-    list<int>::iterator itValue;
-};
 
 Arg::Arg(int n,double rho,double delta,vector<int> blocks,vector<int> gaps,PopSize * popsize) {
   this->n=n;
@@ -28,96 +20,8 @@ Arg::Arg(int n,double rho,double delta,vector<int> blocks,vector<int> gaps,PopSi
   construct();
 }
 
-void removeAncMat(const int start, const int end, vector<int> &starts, vector<int> &ends){
-  //Reove MRCA material from chosen nodes
-  //cout << "Interval to remove: " << start << " " << end << endl;
-  vector<int> tempStarts;
-  vector<int> tempEnds;
-  for (int a=0;a<int(starts.size());++a){
-    if ((end < starts[a]) || (start > ends[a])){
-      tempStarts.push_back(starts[a]);
-      tempEnds.push_back(ends[a]);
-    }else if ((start <= starts[a]) && (end >= starts[a])){
-      if (end < ends[a]){
-        tempStarts.push_back(end+1);
-        tempEnds.push_back(ends[a]);
-      }
-      //Otherwise remove interval from ancestral material
-    }else if ((end >= ends[a]) && (start <= ends[a])){
-      tempStarts.push_back(starts[a]);
-      tempEnds.push_back(start-1);
-    }else if ((start > starts[a]) && (end < ends[a])){
-      tempStarts.push_back(starts[a]);
-      tempEnds.push_back(start-1);
-      tempStarts.push_back(end+1);
-      tempEnds.push_back(ends[a]);
-    }
-  }
-  starts = tempStarts;
-  ends = tempEnds;
-}
-
-void modifyMRCA(MRCA& M, const int start, const int end){
-//update the list of MRCA intervals by subtracting an interval overlapping in the two coalesceing lineages
-  //cout << "Overlap interval:" << endl;
-  //cout << start << " " << end << endl;
-  M.itStart=M.starts.begin();
-  M.itEnd=M.ends.begin();
-  M.itValue=M.values.begin();
-	if ((M).itStart==(M).starts.end()){
-		cout << "Error : this part should be in the MRCA vector, but it isn't (1) " << *M.itStart << " " << *M.starts.end() << endl;
-	 	return;
-   //exit();
-	}
-	while (*((M).itEnd) < start) {
-    //cout << "Start: " << *M.itStart << " End: " << *M.itEnd << " Value: " << *M.itValue << endl;
-		++((M).itStart);
-		++((M).itEnd);
-		++((M).itValue);
-		if ((M).itStart==((M).starts).end()){
-			cout << "Error : this part should be in the MRCA vector, but it isn't (2)" << *M.itStart << " " << *M.starts.end() << endl;
-    	//exit();
-      break;
-		}
-	}
-  //cout << "Start: " << *M.itStart << " End: " << *M.itEnd << " Value: " << *M.itValue << endl;
-
-	if (start<*((M).itStart)){
-		cout << "Error : this part should be in the MRCA vector, but it isn't (3)" << start << " " << *M.itStart << endl;
-  	//exit();
-    return;
-	}
-
-	//first element in MRCA list that overlaps, but starting values do not coincide
-	if (((M).itStart!=(M).starts.end()) && *((M).itStart)<start){
-    ++((M).itStart);
-    (M).starts.insert((M).itStart,start);
-    --((M).itStart);
-		(M).ends.insert((M).itEnd,start-1);
-		(M).values.insert((M).itValue,*(M).itValue);
-	}
-
-  	//iteratively look at all intervals in the MRCA structure overlapping completely the given interval
-	while ((((M).itStart)!=(M).starts.end()) && (*((M).itEnd)<=end)) {
-    --*((M).itValue);
-		++((M).itStart);
-		++((M).itEnd);
-		++((M).itValue);
-	}
-
-  // look at the final interval in the MRCA, if present, that overlaps the given interval but has end after the end of the given interval
-  if (((M).itStart!=(M).starts.end()) && (*((M).itStart)<=end)){
-    ++((M).itStart);
-    (M).starts.insert((M).itStart,end+1);
-    (M).ends.insert((M).itEnd,end);
-    (M).values.insert((M).itValue,*((M).itValue));
-    --(M).itValue;
-    --*((M).itValue);
-  }
-}
-
 void Arg::construct() {
-  MRCA M;
+  Arg::MRCA M;
   clock_t t1, t2;
   t1=clock();
   s.clear(); //Nodes in the graph
@@ -130,19 +34,18 @@ void Arg::construct() {
   int G = L;
   for (int i=0;i<b;++i) G += gaps[i];
 
-  const double noStop = 1 - (1/delta);
-  const double siteRecomb = rho/(2*G);
+  const double noStop = 1 - (1/delta); //Geometric rate of elongating recombinant intervals
+  const double siteRecomb = rho/(2*G); //Individual site rate of recombinant interval initiation
 
   int k=n; //Current number of nodes is the number of initial isolates
   vector<int> toCoal;//Contains the list of lines currently in the ARG
-  vector<vector<bool> > toCoalAncMat;//Describes the ancestral material of these lines
-  vector<double> recombRates;//<Recombination rate of each node
-  vector<vector<double> > probStart; //Probability of a recombination interval starting at each site of the genome
+  vector<double> recombRates;//Recombination rate of each node
+  vector<vector<double> > probStart; //Probability of a recombination interval starting at the start of each interval of ancestral material
   vector<int> blockStarts; //Contains a list of where the blocks start on the genome
   vector<int> blockEnds; //Contains a list of where the blocks end on the genome
   vector<vector<int> > intervalStarts; //A list of all ancestral interval start sites for each node
   vector<vector<int> > intervalEnds;//A list of all ancestral interval end sites for each node
-  vector<int> totMaterial;
+  vector<int> totMaterial; //Total amount of ancestral material contained at each node
 
   //Calculate positions of ancestral blocks with gaps
   blockStarts.push_back(blocks[0]);
@@ -180,7 +83,7 @@ void Arg::construct() {
   calc_clonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb, totMaterial.back());
 
   //Set values for initial nodes of the ARG
-  for (int i=1;i<n;i++) {
+  for (int i=1;i<n;++i){
     toCoal.push_back(i); //Initial nodes are in the ARG
     s.push_back(vector<int>(6,-1)); //Create new node
     ages.push_back(0.0); //Give all nodes an age of 0
@@ -196,22 +99,19 @@ void Arg::construct() {
     totMaterial.push_back(0);
     totMaterial.back() = totMaterial[0];
   }
-
   double currentTime=0.0;
   //Simulate the coalescence-recombination graph
   t2=clock();
   cout << "Time spent initialising nodes: " << (double)(t2-t1)/CLOCKS_PER_SEC << " seconds" << endl;
-  double split_time=0.0, recomb_probTime=0.0, recomb_intervalTime=0.0, combine_time=0.0, remove_time=0.0;
+  double split_time=0.0, recomb_probTime=0.0, recomb_intervalTime=0.0, combine_time=0.0, check_time=0.0, remove_time=0.0;
   while (k>1) {
-    //cout << "Nodes remaining: " << k << endl;
     //Calculate the current rate of recombination
     double currentRecomb = 0.0;
-    for (int i=0;i<int(recombRates.size());++i) currentRecomb += recombRates[i];
+    for (size_t i=0;i<recombRates.size();++i) currentRecomb += recombRates[i];
     //Simulate time to next event exponentially
     currentTime+=gsl_ran_exponential(rng,2.0/(k*(k-1)+(2.0*currentRecomb)));
     //Randomly choose coalescence or recombination
-    if (gsl_rng_uniform(rng)<1.0*(k*(k-1))/(k*(k-1)+(2.0*currentRecomb))){
-      //cout << "Coal" << endl;
+    if (gsl_rng_uniform(rng)<(k*(k-1.0))/(k*(k-1.0)+(2.0*currentRecomb))){
       //Coalescence event
       //Choose two children to coalesce at random
       int i = floor(gsl_rng_uniform(rng)*k);
@@ -235,56 +135,26 @@ void Arg::construct() {
       clonal.push_back(clonal[toCoal[i]]||clonal[toCoal[j]]);
       //Add new node to the current ARG
       toCoal[i] = s.size()-1;
-
       //Test for fully coalesced material
       t1=clock();
-      {
-        int index1=0, index2=0;
-        int b1 = intervalStarts[i].size(), b2 = intervalStarts[j].size();
-        int currentStart1=0, currentStart2=0;
-        if ((index1 != b1) && (index2 != b2)) currentStart1=intervalStarts[i][index1], currentStart2=intervalStarts[j][index2];
-        while ((index1 != b1) && (index2 != b2)){
-          if ((currentStart1 < currentStart2) && (intervalEnds[i][index1]>=currentStart2)){ //overlap
-            currentStart1=currentStart2;
-          }else if ((currentStart2 < currentStart1) && (intervalEnds[j][index2]>=currentStart1)){ //overlap
-            currentStart2=currentStart1;
-          }else if ((currentStart1 < currentStart2) && (intervalEnds[i][index1]<currentStart2)){ //no overlap
-            ++index1;
-            if (index1<b1) currentStart1=intervalStarts[i][index1];
-          }else if ((currentStart2 < currentStart1) && (intervalEnds[j][index2]<currentStart1)){ //no overlap
-            ++index2;
-            if (index2<b2) currentStart2=intervalStarts[j][index2];
-          }else if ((currentStart1 == currentStart2) && (intervalEnds[i][index1]<intervalEnds[j][index2])){ //overlap, same start
-            modifyMRCA(M, currentStart1, intervalEnds[i][index1]);
-            currentStart2=intervalEnds[i][index1]+1;
-            ++index1;
-            if (index1<b1) currentStart1=intervalStarts[i][index1];
-          }else if ((currentStart1 == currentStart2) && (intervalEnds[j][index2]<intervalEnds[i][index1])){ //overlap, same start
-            modifyMRCA(M, currentStart1, intervalEnds[j][index2]);
-            currentStart1=intervalEnds[j][index2]+1;
-            ++index2;
-            if (index2<b2) currentStart2=intervalStarts[j][index2];
-          }else if ((currentStart1 == currentStart2) && (intervalEnds[j][index2]==intervalEnds[i][index1])){ //overlap, same start, same end
-            modifyMRCA(M, currentStart1, intervalEnds[i][index1]);
-            ++index2;
-            if (index2<b2) currentStart2=intervalStarts[j][index2];
-            ++index1;
-            if (index1<b1) currentStart1=intervalStarts[i][index1];
-          }else{
-            cout << "Error : this case should not happen in updating MRCA vector" << endl;
-            //exit();
-            break;
-          }
-        }
-      }
-      //Find blocks in MRCA struct that have reached a value of zero
+      update_MRCA(M, intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
+      t2=clock();
+      check_time += t2-t1;
+      t1=clock();
+      combine_ancestries(intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
+      t2=clock();
+      combine_time += t2-t1;
+      //Find blocks in MRCA struct that have reached a value of one, fully coalesced
+      t1=clock();
       M.itStart = M.starts.begin();
       M.itEnd = M.ends.begin();
       M.itValue = M.values.begin();
       while (M.itStart != M.starts.end()){
         if (*M.itValue == 1){
+          //MRCA reached for interval, remove this interval from ancestral material
           removeAncMat(*M.itStart, *M.itEnd, intervalStarts[i], intervalEnds[i]);
           removeAncMat(*M.itStart, *M.itEnd, intervalStarts[j], intervalEnds[j]);
+          //Remove this interval from the MRCA struct
           M.itStart = M.starts.erase(M.itStart);
           M.itEnd = M.ends.erase(M.itEnd);
           M.itValue = M.values.erase(M.itValue);
@@ -295,12 +165,7 @@ void Arg::construct() {
         }
       }
       t2=clock();
-      remove_time += t2-t1;
-      t1=clock();
-      combine_ancestries(intervalStarts[i], intervalEnds[i], intervalStarts[j], intervalEnds[j]);
-      t2=clock();
-      combine_time += t2-t1;
-      //If material has been removed from the lineage, recalculate the intervals
+      remove_time += (t2-t1);
       t1 = clock();
       //Calculate the recombination rate for the new node
       if (clonal[toCoal[i]] == true){
@@ -325,7 +190,6 @@ void Arg::construct() {
       totMaterial.pop_back();
       --k;
     }else{
-      //cout << "Recomb" << endl;
       //Recombination event
       //Choose a child to undergo recombination weighted by its local recombination rate
       double r_1=gsl_rng_uniform(rng);
@@ -342,10 +206,6 @@ void Arg::construct() {
       }else{
         choose_nonClonalRecomb(probStart[i], G, intervalStarts[i], intervalEnds[i], beg, end, noStop, totMaterial[i], recombRates[i]);
       }
-      // cout << "Ancestral material: " << clonal[toCoal[i]] << endl;
-      // for (int a=0;a<int(intervalStarts[i].size());++a) cout << intervalStarts[i][a] << " " << intervalEnds[i][a] << ", ";
-      // cout << endl;
-      // cout << "Recomb interval " << beg << " " << end << endl << endl;
       t2=clock();
       recomb_intervalTime += (t2-t1);
       //Choose first parent to be clonal if child is clonal
@@ -357,15 +217,14 @@ void Arg::construct() {
       int LTbeg = beg;
       int LTend = end;
       for (int m=0;m<b;++m){
-        if ((LTbeg >= blockStarts[m]) && (LTbeg < blockEnds[m])){
+        if ((LTbeg >= blockStarts[m]) && (LTbeg <= blockEnds[m])){
           LTbeg = LTbeg - blockStarts[m] + blocks[m];
           break;
         }
       }
       for (int m=0;m<b;++m){
-        if ((LTend >= blockStarts[m]) && (LTend < blockStarts[m+1])){
-          if (LTend >= blockEnds[m]) LTend = blocks[m+1]-1;
-          else LTend = LTend - blockStarts[m] + blocks[m];
+        if ((LTend >= blockStarts[m]) && (LTend <= blockEnds[m])){
+          LTend = LTend - blockStarts[m] + blocks[m];
           break;
         }
       }
@@ -396,7 +255,7 @@ void Arg::construct() {
       t1=clock();
       intervalStarts.push_back(vector<int>(NULL));
       intervalEnds.push_back(vector<int>(NULL));
-      split_ancestries(intervalStarts[i],intervalEnds[i],intervalStarts.back(), intervalEnds.back(), beg, end);
+      split_ancestries(intervalStarts[i], intervalEnds[i], intervalStarts.back(), intervalEnds.back(), beg, end);
       t2=clock();
       split_time = (t2-t1);
       //Calculate recombination rates and start-point probabilities for the new parents
@@ -420,7 +279,8 @@ void Arg::construct() {
   cout << "Time spent on splitting ancestries: " << (double)split_time/CLOCKS_PER_SEC << " seconds" << endl;
   cout << "Time spent on calculating recomb probabilities: " << (double)recomb_probTime/CLOCKS_PER_SEC << " seconds" << endl;
   cout << "Time spent on combining lineages: " << (double)combine_time/CLOCKS_PER_SEC << " seconds" << endl;
-  cout << "Time spent checking for fully coalesced material: " << (double)remove_time/CLOCKS_PER_SEC << " seconds" << endl;
+  cout << "Time spent updating MRCA struct: " << (double)check_time/CLOCKS_PER_SEC << " seconds" << endl;
+  cout << "Time spent removing coalesced material: " << (double)remove_time/CLOCKS_PER_SEC << " seconds" << endl;
   if (popsize!=NULL) for (unsigned int i=0;i<ages.size();i++) ages[i]=popsize->convert(ages[i]);
 }
 
