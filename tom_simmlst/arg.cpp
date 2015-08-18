@@ -73,8 +73,9 @@ void Arg::construct() {
   //Initialise MRCA struct
   list<int>::iterator itStart = (intervalStarts.back()).begin(), itEnd = (intervalEnds.back()).begin();
   ++itStart;
-  while (itStart != intervalStarts.back().end()){
-    if (*itStart == *itEnd){
+  //Join together intervals with no gaps
+  while (itStart != (intervalStarts.back()).end()){
+    if (*itStart <= (*itEnd + 1)){
       itStart = (intervalStarts.back()).erase(itStart);
       itEnd = (intervalEnds.back()).erase(itEnd);
     }else{
@@ -83,7 +84,7 @@ void Arg::construct() {
     }
   }
   itStart = (intervalStarts.back()).begin(), itEnd = (intervalEnds.back()).begin();
-  while (itStart != intervalStarts.back().end()){
+  while (itStart != (intervalStarts.back()).end()){
     M.starts.push_back(*itStart);
     M.ends.push_back(*itEnd);
     M.values.push_back(n);//Initialise material for all leaf nodes
