@@ -84,12 +84,12 @@ char Data::convertBack(char in) {
 
 void Data::output(ostream * out)
 {
-	for (int i=0;i<getB();i++)
+	for (int i=0;i<getB();++i)
 	{
-		for (unsigned int j=0;j<n;j++) 
+		for (unsigned int j=0;j<n;++j)
 		{
 			*out<<">"<<j<<endl;
-			for (int k=blocks[i];k<blocks[i+1];k++) *out<<convertBack(data[j][k]);
+			for (int k=blocks[i];k<blocks[i+1];++k) *out<<convertBack(data[j][k]);
 			*out<<endl;
 		}
 		*out<<"="<<endl;
@@ -99,12 +99,10 @@ void Data::output(ostream * out)
 double Data::watterson()
 {
 	int p=0;
-	for (unsigned int i=0;i<poly.size();i++) if (poly[i]) p++;//bad with missing data
+	for (unsigned int i=0;i<poly.size();++i) if (poly[i]) p++;//bad with missing data
 	double s=0;
-	for (unsigned int i=1;i<=n;i++) s+=1.0/i;
+	for (unsigned int i=1;i<=n;++i) s+=1.0/i;
 	return 1.0*p/s;
 }
 
 Data::~Data() {}
-
-

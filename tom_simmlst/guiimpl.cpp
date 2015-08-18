@@ -17,8 +17,8 @@ void GuiImpl::on_help_clicked() {
   QMessageBox::about(0,"Help","\n\
 Number of isolates:\tSets the number of isolates (default is 100)\n\
 Length of gene fragments:\tSets the number and length of the fragments\n\
-\t\t(default is 400,400,400,400,400,400,400)\n\
-Gap size between gene fragements:\t\t(default is 500,500,500,500,500,500,500)\n\
+\t\t(default is 10000)\n\
+Gap size:\tSets the gap size between gene fragements, must be same number as number of gene fragments:\t\t(default is 0)\n\
 Mutation rate:\t\tSets the value of theta (default is 100)\n\
 Recombination rate:\tSets the value of rho (default is 100)\n\
 Mean tract length delta:\tSets the value of delta (default is 500)\n\

@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     }
     if (seed==-1) makerng(); else {rng=gsl_rng_alloc(gsl_rng_default);gsl_rng_set(rng,seed);};
     if (gaps.size() == 0){
-      for (int i=0;i<int(blocks.size()-1);++i) gaps.push_back(0);
+      for (size_t i=0;i<blocks.size()-1;++i) gaps.push_back(0);
     }
 
     if (gaps.size() != blocks.size()-1) {cout << "Wrong number of gaps given (must be same as number of blocks)" << endl;return 1;}
