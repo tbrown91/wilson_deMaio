@@ -243,8 +243,7 @@ arg.o: arg.cpp arg.h \
 		popsize.h \
 		coal_event.h \
 		recomb_event.h \
-		recomb_prob.h \
-		calc_intervals.h
+		recomb_prob.h 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o arg.o arg.cpp
 
 data.o: data.cpp data.h
