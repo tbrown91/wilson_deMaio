@@ -106,7 +106,7 @@ void merge_MRCA(Arg::MRCA &M){
   }
 }
 
-void update_MRCA(Arg::MRCA &M, const list<int> &starts_1, const list<int> &ends_1, const list<int> &starts_2, const list<int> &ends_2, int &MRCA_check, double &merge_time, double &modify_time){
+void update_MRCA(Arg::MRCA &M, const list<int> &starts_1, const list<int> &ends_1, const list<int> &starts_2, const list<int> &ends_2, int &MRCA_check){
   //Find overlapping regions of ancestral material in the two children and update the MRCA lists
   if ((starts_1.size() == 0) || (starts_2.size() == 0)) return; //No ancestral material in one or both nodes, therefore MRCA struct does not need to be updated
   list<int>::const_iterator itStart1 = starts_1.begin(), itEnd1 = ends_1.begin();
@@ -114,7 +114,6 @@ void update_MRCA(Arg::MRCA &M, const list<int> &starts_1, const list<int> &ends_
   int currentStart1=0, currentStart2=0;
   currentStart1=*itStart1, currentStart2=*itStart2;
   int interval_check = 0;
-  clock_t t1, t2;
   while ((itStart1 != starts_1.end()) && (itStart2 != starts_2.end())){
     if ((currentStart1 < currentStart2) && (*itEnd1>=currentStart2)){ //overlap
       currentStart1=currentStart2;
