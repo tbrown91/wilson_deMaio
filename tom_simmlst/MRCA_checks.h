@@ -51,13 +51,11 @@ void modifyMRCA(Arg::MRCA &M, const int start, const int end, int &MRCA_check){
 		++(M.itValue);
 		if (M.itStart==M.starts.end()){
 			cout << "Error : this part should be in the MRCA vector, but it isn't (2)" << *M.itStart << " " << *M.starts.end() << endl;
-      break;
+      return;
 		}
 	}
 	if (start<*(M.itStart)){
 		cout << "Error : this part should be in the MRCA vector, but it isn't (3)" << start << " " << *M.itStart << endl;
-    int a;
-    cin >> a;
     return;
 	}
 	//first element in MRCA list that overlaps, but starting values do not coincide
@@ -71,7 +69,7 @@ void modifyMRCA(Arg::MRCA &M, const int start, const int end, int &MRCA_check){
 	//iteratively look at all intervals in the MRCA structure overlapping completely the given interval
 	while ((M.itStart!=M.starts.end()) && (*M.itEnd<=end)) {
     --*(M.itValue);
-    if (*(M.itValue) == 1) MRCA_check = 1;
+    if (*(M.itValue) == 1) MRCA_check = 1;//Need to remove some ancestral material from new node
 		++(M.itStart);
 		++(M.itEnd);
 		++(M.itValue);
@@ -84,7 +82,7 @@ void modifyMRCA(Arg::MRCA &M, const int start, const int end, int &MRCA_check){
     M.values.insert(M.itValue,*M.itValue);
     --M.itValue;
     --*(M.itValue);
-    if (*(M.itValue) == 1) MRCA_check = 1;
+    if (*(M.itValue) == 1) MRCA_check = 1;//Need to remove some ancestral material from new node
   }
 }
 
@@ -129,21 +127,21 @@ void update_MRCA(Arg::MRCA &M, const list<int> &starts_1, const list<int> &ends_
       if (itStart2 != starts_2.end()) currentStart2=*itStart2;
     }else if ((currentStart1 == currentStart2) && (*itEnd1<*itEnd2)){ //overlap, same start
       modifyMRCA(M, currentStart1, *itEnd1, MRCA_check);
-      interval_check = 1;
+      interval_check = 1;//Potential to merge MRCA struct
       currentStart2=*itEnd1+1;
       ++itStart1;
       ++itEnd1;
       if (itStart1 != starts_1.end()) currentStart1=*itStart1;
     }else if ((currentStart1 == currentStart2) && (*itEnd2<*itEnd1)){ //overlap, same start
       modifyMRCA(M, currentStart1, *itEnd2, MRCA_check);
-      interval_check = 1;
+      interval_check = 1;//Potential to merge MRCA struct
       currentStart1=*itEnd2+1;
       ++itStart2;
       ++itEnd2;
       if (itStart2 != starts_2.end()) currentStart2=*itStart2;
     }else if ((currentStart1 == currentStart2) && (*itEnd2==*itEnd1)){ //overlap, same start, same end
       modifyMRCA(M, currentStart1, *itEnd1, MRCA_check);
-      interval_check = 1;
+      interval_check = 1;//Potential to merge MRCA struct
       ++itStart2;
       ++itEnd2;
       if (itStart2 != starts_2.end()) currentStart2=*itStart2;

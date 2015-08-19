@@ -142,7 +142,6 @@ void Arg::construct() {
         i=j;
         j=k-1;
       }
-
       //Create new node
       s.push_back(vector<int>(6,-1));
       //Set two children of new node
@@ -175,25 +174,6 @@ void Arg::construct() {
       t2=clock();
       combine_time += t2-t1;
 
-      list<list<int> >::iterator itBackStarts = intervalStarts.begin(), itBackEnds = intervalEnds.begin();
-      advance(itBackStarts,k-1);
-      advance(itBackEnds,k-1);
-
-      //Remove the second child from the ARG
-      toCoal[j] = toCoal.back();
-      toCoal.pop_back();
-      recombRates[j] = recombRates.back();
-      recombRates.pop_back();
-      probStart[j] = probStart.back();
-      probStart.pop_back();
-      *itChildStart2 = intervalStarts.back();
-      intervalStarts.pop_back();
-      *itChildEnd2 = intervalEnds.back();
-      intervalEnds.pop_back();
-      totMaterial[j] = totMaterial.back();
-      totMaterial.pop_back();
-      --k;
-
       //Find blocks in MRCA struct that have reached a value of one, fully coalesced
       t1=clock();
       if (MRCA_check == 1){
@@ -202,11 +182,11 @@ void Arg::construct() {
         M.itValue = (M.values).begin();
         while (M.itValue != (M.values).end()){
           if (*(M.itValue) == 1){
-            removeAncMat(*(M.itStart),*(M.itEnd),*itChildStart1,*itChildEnd1);
-            M.itStart = (M.starts).erase(M.itStart);
+            removeAncMat(*(M.itStart),*(M.itEnd),*itChildStart1,*itChildEnd1);//Remove MRCA interval from node
+            M.itStart = (M.starts).erase(M.itStart);//Remove MRCA interval from MRCA struct
             M.itEnd = (M.ends).erase(M.itEnd);
             M.itValue = (M.values).erase(M.itValue);
-
+            if (M.itValue == (M.values).begin()) continue;//Removed interval is first in the list, cannot merge any intervals
             //Check if the two intervals either side of the removed interval can be merged
             int tempVal = *(M.itValue);
             --M.itValue;
@@ -218,6 +198,7 @@ void Arg::construct() {
               M.itEnd = (M.ends).erase(M.itEnd);
               ++M.itEnd;
             }else ++M.itValue;
+
           }else{
             ++M.itStart;
             ++M.itEnd;
@@ -237,6 +218,21 @@ void Arg::construct() {
       }
       t2=clock();
       recomb_probTime += (t2-t1);
+
+      //Remove the second child from the ARG
+      toCoal[j] = toCoal.back();
+      toCoal.pop_back();
+      recombRates[j] = recombRates.back();
+      recombRates.pop_back();
+      probStart[j] = probStart.back();
+      probStart.pop_back();
+      *itChildStart2 = intervalStarts.back();
+      intervalStarts.pop_back();
+      *itChildEnd2 = intervalEnds.back();
+      intervalEnds.pop_back();
+      totMaterial[j] = totMaterial.back();
+      totMaterial.pop_back();
+      --k;
 
     }else{
       //Recombination event
@@ -421,13 +417,13 @@ string Arg::extractCG() {
 }
 
 string Arg::extractLT(int site) {
-  vector<bool> s4(s.size(),false);//Whether to keep a node or not
+  vector<bool> s4(s.size(),false);//Whether a node has the site of interest in its ancestral material
   vector<vector<int> > s2=s;
   //First add all nodes which are ancestral for the given site
   for (int k=0;k<n;++k) s4[k]=true;
   for (unsigned int k=0;k<s4.size()-1;++k) {
       if (s4[k]==false) continue;//Node not included
-      if (s[k][3]==-1) s4[s[k][2]]=true;else {//If node has only one child, set the first child as true
+      if (s[k][3]==-1) s4[s[k][2]]=true;else {//If node has only one parent, set the first child as true, otherwise recombination has occurred
         int beg=s[s[k][3]][4];//Start of import
         int  nd=s[s[k][3]][5];//End of import
         //Set equal to true if the site of interest is included in the imported interval
