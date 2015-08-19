@@ -200,6 +200,17 @@ void Arg::construct() {
           M.itStart = (M.starts).erase(M.itStart);
           M.itEnd = (M.ends).erase(M.itEnd);
           M.itValue = (M.values).erase(M.itValue);
+          int tempVal = *(M.itValue);
+          --M.itValue;
+          //Check to see if intervals either side of removed interval can be merged
+          if (*(M.itValue) == tempVal){
+            M.itStart = (M.starts).erase(M.itStart);
+            --M.itEnd;
+            M.itEnd = (M.ends).erase(M.itEnd);
+            ++M.itEnd;
+            M.itValue = (M.values).erase(M.itValue);
+            ++M.itValue;
+          }else ++M.itValue;
         }else{
           ++M.itStart;
           ++M.itEnd;
