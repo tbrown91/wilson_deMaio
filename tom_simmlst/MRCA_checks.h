@@ -36,7 +36,7 @@ void removeAncMat(const int start, const int end, list<int> &starts, list<int> &
   }
 }
 
-void modifyMRCA(Arg::MRCA &M, const int start, const int end){
+void modifyMRCA(Arg::MRCA &M, const int start, const int end, int &MRCA_check){
 //update the list of MRCA intervals by subtracting an interval overlapping in the two coalesceing lineages
   M.itStart=M.starts.begin();
   M.itEnd=M.ends.begin();
@@ -71,6 +71,7 @@ void modifyMRCA(Arg::MRCA &M, const int start, const int end){
 	//iteratively look at all intervals in the MRCA structure overlapping completely the given interval
 	while ((M.itStart!=M.starts.end()) && (*M.itEnd<=end)) {
     --*(M.itValue);
+    if (*(M.itValue) == 1) MRCA_check = 1;
 		++(M.itStart);
 		++(M.itEnd);
 		++(M.itValue);
@@ -83,16 +84,37 @@ void modifyMRCA(Arg::MRCA &M, const int start, const int end){
     M.values.insert(M.itValue,*M.itValue);
     --M.itValue;
     --*(M.itValue);
+    if (*(M.itValue) == 1) MRCA_check = 1;
   }
 }
 
-void update_MRCA(Arg::MRCA &M, list<int> &starts_1, list<int> &ends_1, const list<int> &starts_2, const list<int> &ends_2){
+void merge_MRCA(Arg::MRCA &M){
+  //Merge any intervals that have the same MRCA value to reduce the size of the struct for searching purposes
+  M.itStart=M.starts.begin();
+  M.itEnd=M.ends.begin();
+  M.itValue=M.values.begin();
+  while (M.itValue != (M.values).end()){
+    int tempVal = *(M.itValue);
+    ++M.itValue;
+    ++M.itStart;
+    if (*(M.itValue) == tempVal){
+      M.itStart = (M.starts).erase(M.itStart);
+      M.itEnd = (M.ends).erase(M.itEnd);
+      ++(M.itEnd);
+      M.itValue = (M.values).erase(M.itValue);
+    }else ++M.itEnd;
+  }
+}
+
+void update_MRCA(Arg::MRCA &M, const list<int> &starts_1, const list<int> &ends_1, const list<int> &starts_2, const list<int> &ends_2, int &MRCA_check, double &merge_time, double &modify_time){
   //Find overlapping regions of ancestral material in the two children and update the MRCA lists
   if ((starts_1.size() == 0) || (starts_2.size() == 0)) return; //No ancestral material in one or both nodes, therefore MRCA struct does not need to be updated
-  list<int>::iterator itStart1 = starts_1.begin(), itEnd1 = ends_1.begin();
+  list<int>::const_iterator itStart1 = starts_1.begin(), itEnd1 = ends_1.begin();
   list<int>::const_iterator itStart2 = starts_2.begin(), itEnd2 = ends_2.begin();
   int currentStart1=0, currentStart2=0;
   currentStart1=*itStart1, currentStart2=*itStart2;
+  int interval_check = 0;
+  clock_t t1, t2;
   while ((itStart1 != starts_1.end()) && (itStart2 != starts_2.end())){
     if ((currentStart1 < currentStart2) && (*itEnd1>=currentStart2)){ //overlap
       currentStart1=currentStart2;
@@ -107,19 +129,22 @@ void update_MRCA(Arg::MRCA &M, list<int> &starts_1, list<int> &ends_1, const lis
       ++itEnd2;
       if (itStart2 != starts_2.end()) currentStart2=*itStart2;
     }else if ((currentStart1 == currentStart2) && (*itEnd1<*itEnd2)){ //overlap, same start
-      modifyMRCA(M, currentStart1, *itEnd1);
+      modifyMRCA(M, currentStart1, *itEnd1, MRCA_check);
+      interval_check = 1;
       currentStart2=*itEnd1+1;
       ++itStart1;
       ++itEnd1;
       if (itStart1 != starts_1.end()) currentStart1=*itStart1;
     }else if ((currentStart1 == currentStart2) && (*itEnd2<*itEnd1)){ //overlap, same start
-      modifyMRCA(M, currentStart1, *itEnd2);
+      modifyMRCA(M, currentStart1, *itEnd2, MRCA_check);
+      interval_check = 1;
       currentStart1=*itEnd2+1;
       ++itStart2;
       ++itEnd2;
       if (itStart2 != starts_2.end()) currentStart2=*itStart2;
     }else if ((currentStart1 == currentStart2) && (*itEnd2==*itEnd1)){ //overlap, same start, same end
-      modifyMRCA(M, currentStart1, *itEnd1);
+      modifyMRCA(M, currentStart1, *itEnd1, MRCA_check);
+      interval_check = 1;
       ++itStart2;
       ++itEnd2;
       if (itStart2 != starts_2.end()) currentStart2=*itStart2;
@@ -130,6 +155,10 @@ void update_MRCA(Arg::MRCA &M, list<int> &starts_1, list<int> &ends_1, const lis
       cout << "Error : this case should not happen in updating MRCA vector" << endl;
       return;
     }
+  }
+  if (interval_check == 1){
+    //If the intervals of the MRCA struct have been altered, check if any can be merged together
+    merge_MRCA(M);
   }
 }
 #endif
