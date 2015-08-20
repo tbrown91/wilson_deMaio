@@ -10,8 +10,12 @@ static const char * help=
     Options:\n\
     -N NUM   Sets the number of isolates (default is 100)\n\
     -T NUM   Sets the value of theta (default is 100)\n\
+    -m NUM   Sets the minimum probability of mutation in an interval of external recombination between 0 & 1 (default is 0)\n\
+    -M NUM   Sets the maximum probability of mutation in an interval of external recombination between 0 & 1 (default is 0)\n\
     -R NUM   Sets the value of rho (default is 100)\n\
+    -r NUM   Sets the rate of external recombination (default is 0)\n\
     -D NUM   Sets the value of delta (default is 500)\n\
+    -e NUM   Sets the average length of external recombinant interval (default is 0)\n\
     -B NUM,...,NUM Sets the number and length of the fragments\n\
              (default is 10000)\n\
     -G NUM   Sets the gap between each fragment(default is 0)\n\
@@ -24,6 +28,7 @@ static const char * help=
     -o FILE  Export data to given file\n\
     -c FILE  Export clonal genealogy to given file\n\
     -l FILE  Export local trees to given file\n\
+    -b FILE  Write log file of recombinant break interval locations\n\
     -d FILE  Export DOT graph to given file\n\
     -a       Include ancestral material in the DOT graph\n\
     ";
@@ -41,8 +46,12 @@ int main(int argc, char *argv[]) {
     PopSize * popsize=NULL;
     int n=100;
     double theta=100.0;
+    double theta_extMin=0.0;
+    double theta_extMax=0.0;
     double rho=100.0;
+    double rho_ext=0.0;
     double delta=500.0;
+    double delta_ext=0.0;
     int seed=-1;
     bool am=false;
     vector<int> blocks;
@@ -53,15 +62,20 @@ int main(int argc, char *argv[]) {
     string lfile="";//File to which the local trees are exported
     string dfile="";//File to which the DOT graph is exported
     string ofile="";//File to which the data is exported
+    string bfile="";//File to which recombinant intervals are exported
     double p1,p2;
     char * pch;
-    while ((c = getopt (argc, argv, "ahN:T:R:D:s:B:G:c:l:d:o:C:E:")) != -1)
+    while ((c = getopt (argc, argv, "ahN:T:m:M:R:r:D:e:s:B:G:c:l:d:o:C:E:")) != -1)
     switch (c)
     {
         case('N'):n=atoi(optarg);break;
+        case('m'):theta_extMin=atof(optarg);break;
+        case('M'):theta_extMax=atof(optarg);break;
         case('T'):theta=atof(optarg);break;
         case('R'):rho=atof(optarg);break;
+        case('r'):rho_ext=atof(optarg);break;
         case('D'):delta=atof(optarg);break;
+        case('e'):delta_ext=atof(optarg);break;
         case('s'):seed=atoi(optarg);break;
         case('B'):blocks=Arg::makeBlocks(optarg);break;
         case('G'):gaps=Arg::makeGaps(optarg);break;
@@ -71,6 +85,7 @@ int main(int argc, char *argv[]) {
         case('l'):lfile=optarg;break;
         case('d'):dfile=optarg;break;
         case('o'):ofile=optarg;break;
+        case('b'):bfile=optarg;break;
         case('C'):if (popsize==NULL) popsize=new PopSize();p1=atof(optarg);pch=strtok(optarg,",");pch=strtok(NULL,",");p2=atof(pch);popsize->addEvent(false,p1,p2);break;
         case('E'):if (popsize==NULL) popsize=new PopSize();p1=atof(optarg);pch=strtok(optarg,",");pch=strtok(NULL,",");p2=atof(pch);popsize->addEvent(true ,p1,p2);break;
         case '?':cout<<"Wrong arguments: did not recognise "<<c<<" "<<optarg<<endl<<help<<endl;return 1;
@@ -85,10 +100,10 @@ int main(int argc, char *argv[]) {
 
     if (argc-optind>0) {cout<<"Wrong arguments."<<endl<<help<<endl;return 1;}
     //Build the ARG
-    Arg * arg=new Arg(n,rho,delta,blocks,gaps,popsize);
+    Arg * arg=new Arg(n,rho,rho_ext,delta,delta_ext,blocks,gaps,popsize);
     //Build the data and export it
     if (ofile.length()>0) {
-    Data * data=arg->drawData(theta);
+    Data * data=arg->drawData(theta,theta_extMin,theta_extMax);
     ofstream dat;
     dat.open(ofile.data());
     data->output(&dat);
@@ -113,6 +128,12 @@ int main(int argc, char *argv[]) {
     dot.open(dfile.data());
     arg->outputDOT(&dot,am);
     dot.close();}
+    //Write recombinant breaks to file
+    if (bfile.length()>0) {
+    ofstream breaks;
+    breaks.open(bfile.data());
+    arg->outputBREAKS(&breaks);
+    breaks.close();}
     delete(arg);
     if (popsize!=NULL) delete(popsize);
     gsl_rng_free(rng);

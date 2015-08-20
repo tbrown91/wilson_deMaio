@@ -41,10 +41,18 @@ public:
     QLineEdit *gapsEd;
     QLabel *label_3;
     QLineEdit *thetaEd;
+    QLabel *label_31;
+    QLineEdit *theta_extMinEd;
+    QLabel *label_32;
+    QLineEdit *theta_extMaxEd;
     QLabel *label_4;
     QLineEdit *rhoEd;
+    QLabel *label_41;
+    QLineEdit *rho_extEd;
     QLabel *label_5;
     QLineEdit *deltaEd;
+    QLabel *label_51;
+    QLineEdit *delta_extEd;
     QLabel *label_10;
     QLineEdit *popSizeEd;
     QToolButton *popSizeShow;
@@ -58,6 +66,9 @@ public:
     QLabel *label_7;
     QLineEdit *cgTo;
     QToolButton *cgSelect;
+    QLabel *label_71;
+    QLineEdit *rbTo;
+    QToolButton *rbSelect;
     QLabel *label_8;
     QLineEdit *dotTo;
     QToolButton *dotSelect;
@@ -71,7 +82,7 @@ public:
     {
         if (Gui->objectName().isEmpty())
             Gui->setObjectName(QString::fromUtf8("Gui"));
-        Gui->resize(443, 443);
+        Gui->resize(443, 543);
         centralwidget = new QWidget(Gui);
         centralwidget->setObjectName(QString::fromUtf8("centralwidget"));
         gridLayout = new QGridLayout(centralwidget);
@@ -121,115 +132,174 @@ public:
 
         gridLayout->addWidget(thetaEd, 3, 1, 1, 3);
 
+        label_31 = new QLabel(centralwidget);
+        label_31->setObjectName(QString::fromUtf8("label_31"));
+
+        gridLayout->addWidget(label_31, 4, 0, 1, 1);
+
+        theta_extMinEd = new QLineEdit(centralwidget);
+        theta_extMinEd->setObjectName(QString::fromUtf8("theta_extMinEd"));
+        theta_extMinEd->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+        gridLayout->addWidget(theta_extMinEd, 4, 1, 1, 3);
+
+        label_32 = new QLabel(centralwidget);
+        label_32->setObjectName(QString::fromUtf8("label_32"));
+
+        gridLayout->addWidget(label_32, 5, 0, 1, 1);
+
+        theta_extMaxEd = new QLineEdit(centralwidget);
+        theta_extMaxEd->setObjectName(QString::fromUtf8("theta_extMaxEd"));
+        theta_extMaxEd->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+        gridLayout->addWidget(theta_extMaxEd, 5, 1, 1, 3);
+
         label_4 = new QLabel(centralwidget);
         label_4->setObjectName(QString::fromUtf8("label_4"));
 
-        gridLayout->addWidget(label_4, 4, 0, 1, 1);
+        gridLayout->addWidget(label_4, 6, 0, 1, 1);
 
         rhoEd = new QLineEdit(centralwidget);
         rhoEd->setObjectName(QString::fromUtf8("rhoEd"));
         rhoEd->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
 
-        gridLayout->addWidget(rhoEd, 4, 1, 1, 3);
+        gridLayout->addWidget(rhoEd, 6, 1, 1, 3);
+
+        label_41 = new QLabel(centralwidget);
+        label_41->setObjectName(QString::fromUtf8("label_41"));
+
+        gridLayout->addWidget(label_41, 7, 0, 1, 1);
+
+        rho_extEd = new QLineEdit(centralwidget);
+        rho_extEd->setObjectName(QString::fromUtf8("rho_extEd"));
+        rho_extEd->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+        gridLayout->addWidget(rho_extEd, 7, 1, 1, 3);
 
         label_5 = new QLabel(centralwidget);
         label_5->setObjectName(QString::fromUtf8("label_5"));
 
-        gridLayout->addWidget(label_5, 5, 0, 1, 1);
+        gridLayout->addWidget(label_5, 8, 0, 1, 1);
 
         deltaEd = new QLineEdit(centralwidget);
         deltaEd->setObjectName(QString::fromUtf8("deltaEd"));
         deltaEd->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
 
-        gridLayout->addWidget(deltaEd, 5, 1, 1, 3);
+        gridLayout->addWidget(deltaEd, 8, 1, 1, 3);
+
+        label_51 = new QLabel(centralwidget);
+        label_51->setObjectName(QString::fromUtf8("label_51"));
+
+        gridLayout->addWidget(label_51, 9, 0, 1, 1);
+
+        delta_extEd = new QLineEdit(centralwidget);
+        delta_extEd->setObjectName(QString::fromUtf8("delta_extEd"));
+        delta_extEd->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+        gridLayout->addWidget(delta_extEd, 9, 1, 1, 3);
 
         label_10 = new QLabel(centralwidget);
         label_10->setObjectName(QString::fromUtf8("label_10"));
 
-        gridLayout->addWidget(label_10, 6, 0, 1, 1);
+        gridLayout->addWidget(label_10, 10, 0, 1, 1);
 
         popSizeEd = new QLineEdit(centralwidget);
         popSizeEd->setObjectName(QString::fromUtf8("popSizeEd"));
         popSizeEd->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
 
-        gridLayout->addWidget(popSizeEd, 6, 1, 1, 1);
+        gridLayout->addWidget(popSizeEd, 10, 1, 1, 1);
 
         popSizeShow = new QToolButton(centralwidget);
         popSizeShow->setObjectName(QString::fromUtf8("popSizeShow"));
 
-        gridLayout->addWidget(popSizeShow, 6, 2, 1, 2);
+        gridLayout->addWidget(popSizeShow, 10, 2, 1, 2);
 
         line = new QFrame(centralwidget);
         line->setObjectName(QString::fromUtf8("line"));
         line->setFrameShape(QFrame::HLine);
         line->setFrameShadow(QFrame::Sunken);
 
-        gridLayout->addWidget(line, 7, 0, 1, 4);
+        gridLayout->addWidget(line, 11, 0, 1, 4);
 
         label_6 = new QLabel(centralwidget);
         label_6->setObjectName(QString::fromUtf8("label_6"));
 
-        gridLayout->addWidget(label_6, 8, 0, 1, 1);
+        gridLayout->addWidget(label_6, 12, 0, 1, 1);
 
         dataTo = new QLineEdit(centralwidget);
         dataTo->setObjectName(QString::fromUtf8("dataTo"));
 
-        gridLayout->addWidget(dataTo, 8, 1, 1, 2);
+        gridLayout->addWidget(dataTo, 12, 1, 1, 2);
 
         dataSelect = new QToolButton(centralwidget);
         dataSelect->setObjectName(QString::fromUtf8("dataSelect"));
 
-        gridLayout->addWidget(dataSelect, 8, 3, 1, 1);
+        gridLayout->addWidget(dataSelect, 12, 3, 1, 1);
 
         label_9 = new QLabel(centralwidget);
         label_9->setObjectName(QString::fromUtf8("label_9"));
 
-        gridLayout->addWidget(label_9, 9, 0, 1, 1);
+        gridLayout->addWidget(label_9, 13, 0, 1, 1);
 
         ltTo = new QLineEdit(centralwidget);
         ltTo->setObjectName(QString::fromUtf8("ltTo"));
 
-        gridLayout->addWidget(ltTo, 9, 1, 1, 2);
+        gridLayout->addWidget(ltTo, 13, 1, 1, 2);
 
         ltSelect = new QToolButton(centralwidget);
         ltSelect->setObjectName(QString::fromUtf8("ltSelect"));
 
-        gridLayout->addWidget(ltSelect, 9, 3, 1, 1);
+        gridLayout->addWidget(ltSelect, 13, 3, 1, 1);
 
         label_7 = new QLabel(centralwidget);
         label_7->setObjectName(QString::fromUtf8("label_7"));
 
-        gridLayout->addWidget(label_7, 10, 0, 1, 1);
+        gridLayout->addWidget(label_7, 14, 0, 1, 1);
 
         cgTo = new QLineEdit(centralwidget);
         cgTo->setObjectName(QString::fromUtf8("cgTo"));
 
-        gridLayout->addWidget(cgTo, 10, 1, 1, 2);
+        gridLayout->addWidget(cgTo, 14, 1, 1, 2);
 
         cgSelect = new QToolButton(centralwidget);
         cgSelect->setObjectName(QString::fromUtf8("cgSelect"));
 
-        gridLayout->addWidget(cgSelect, 10, 3, 1, 1);
+        gridLayout->addWidget(cgSelect, 14, 3, 1, 1);
+
+        label_71 = new QLabel(centralwidget);
+        label_71->setObjectName(QString::fromUtf8("label_71"));
+
+        gridLayout->addWidget(label_71, 15, 0, 1, 1);
+
+        rbTo = new QLineEdit(centralwidget);
+        rbTo->setObjectName(QString::fromUtf8("rbTo"));
+
+        gridLayout->addWidget(rbTo, 15, 1, 1, 2);
+
+        rbSelect = new QToolButton(centralwidget);
+        rbSelect->setObjectName(QString::fromUtf8("rbSelect"));
+
+        gridLayout->addWidget(rbSelect, 15, 3, 1, 1);
 
         label_8 = new QLabel(centralwidget);
         label_8->setObjectName(QString::fromUtf8("label_8"));
 
-        gridLayout->addWidget(label_8, 11, 0, 1, 1);
+        gridLayout->addWidget(label_8, 16, 0, 1, 1);
 
         dotTo = new QLineEdit(centralwidget);
         dotTo->setObjectName(QString::fromUtf8("dotTo"));
 
-        gridLayout->addWidget(dotTo, 11, 1, 1, 2);
+        gridLayout->addWidget(dotTo, 16, 1, 1, 2);
 
         dotSelect = new QToolButton(centralwidget);
         dotSelect->setObjectName(QString::fromUtf8("dotSelect"));
 
-        gridLayout->addWidget(dotSelect, 11, 3, 1, 1);
+        gridLayout->addWidget(dotSelect, 16, 3, 1, 1);
 
         amEd = new QCheckBox(centralwidget);
         amEd->setObjectName(QString::fromUtf8("amEd"));
 
-        gridLayout->addWidget(amEd, 12, 0, 1, 3);
+        gridLayout->addWidget(amEd, 17, 0, 1, 3);
 
         hboxLayout = new QHBoxLayout();
         hboxLayout->setObjectName(QString::fromUtf8("hboxLayout"));
@@ -244,7 +314,7 @@ public:
         hboxLayout->addWidget(run);
 
 
-        gridLayout->addLayout(hboxLayout, 13, 0, 1, 4);
+        gridLayout->addLayout(hboxLayout, 18, 0, 1, 4);
 
         Gui->setCentralWidget(centralwidget);
         statusbar = new QStatusBar(Gui);
@@ -271,10 +341,18 @@ public:
         gapsEd->setText(QApplication::translate("Gui", "0", 0, QApplication::UnicodeUTF8));
         label_3->setText(QApplication::translate("Gui", "Mutation rate (theta)", 0, QApplication::UnicodeUTF8));
         thetaEd->setText(QApplication::translate("Gui", "100", 0, QApplication::UnicodeUTF8));
+        label_31->setText(QApplication::translate("Gui", "External minimum mutation probability (theta_extMin)", 0, QApplication::UnicodeUTF8));
+        theta_extMinEd->setText(QApplication::translate("Gui", "0.5", 0, QApplication::UnicodeUTF8));
+        label_32->setText(QApplication::translate("Gui", "External maximum mutation probability (theta_extMax)", 0, QApplication::UnicodeUTF8));
+        theta_extMaxEd->setText(QApplication::translate("Gui", "1", 0, QApplication::UnicodeUTF8));
         label_4->setText(QApplication::translate("Gui", "Recombination rate (rho)", 0, QApplication::UnicodeUTF8));
         rhoEd->setText(QApplication::translate("Gui", "100", 0, QApplication::UnicodeUTF8));
+        label_41->setText(QApplication::translate("Gui", "External recombination rate (rho_ext)", 0, QApplication::UnicodeUTF8));
+        rho_extEd->setText(QApplication::translate("Gui", "0", 0, QApplication::UnicodeUTF8));
         label_5->setText(QApplication::translate("Gui", "Mean tract length (delta)", 0, QApplication::UnicodeUTF8));
         deltaEd->setText(QApplication::translate("Gui", "500", 0, QApplication::UnicodeUTF8));
+        label_51->setText(QApplication::translate("Gui", "External mean tract length (delta_ext)", 0, QApplication::UnicodeUTF8));
+        delta_extEd->setText(QApplication::translate("Gui", "0", 0, QApplication::UnicodeUTF8));
         label_10->setText(QApplication::translate("Gui", "Population size model", 0, QApplication::UnicodeUTF8));
         popSizeShow->setText(QApplication::translate("Gui", "Show", 0, QApplication::UnicodeUTF8));
         label_6->setText(QApplication::translate("Gui", "Save data to...", 0, QApplication::UnicodeUTF8));
@@ -283,6 +361,8 @@ public:
         ltSelect->setText(QApplication::translate("Gui", "...", 0, QApplication::UnicodeUTF8));
         label_7->setText(QApplication::translate("Gui", "Save clonal genealogy to...", 0, QApplication::UnicodeUTF8));
         cgSelect->setText(QApplication::translate("Gui", "...", 0, QApplication::UnicodeUTF8));
+        label_71->setText(QApplication::translate("Gui", "Save recombinant intervals to...", 0, QApplication::UnicodeUTF8));
+        rbSelect->setText(QApplication::translate("Gui", "...", 0, QApplication::UnicodeUTF8));
         label_8->setText(QApplication::translate("Gui", "Save DOT graph to...", 0, QApplication::UnicodeUTF8));
         dotSelect->setText(QApplication::translate("Gui", "...", 0, QApplication::UnicodeUTF8));
         amEd->setText(QApplication::translate("Gui", "Save ancestral material in the DOT graph", 0, QApplication::UnicodeUTF8));

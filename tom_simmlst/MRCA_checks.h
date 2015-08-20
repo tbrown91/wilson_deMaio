@@ -87,7 +87,7 @@ void modifyMRCA(Arg::MRCA &M, const int start, const int end, int &MRCA_check){
 }
 
 void merge_MRCA(Arg::MRCA &M){
-  //Merge any intervals that have the same MRCA value to reduce the size of the struct for searching purposes
+  //Merge any consecutive intervals that have the same MRCA value to reduce the size of the struct for searching purposes
   M.itStart=M.starts.begin();
   M.itEnd=M.ends.begin();
   M.itValue=M.values.begin();

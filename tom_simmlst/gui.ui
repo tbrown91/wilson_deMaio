@@ -5,12 +5,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-<<<<<<< HEAD
     <width>443</width>
-=======
-    <width>389</width>
->>>>>>> 7aa935157e99ee5f2163daa9e1f9819161180305
-    <height>443</height>
+    <height>543</height>
    </rect>
   </property>
   <property name="windowTitle" >
@@ -54,11 +50,7 @@
     <item row="1" column="1" colspan="3" >
      <widget class="QLineEdit" name="fragsEd" >
       <property name="text" >
-<<<<<<< HEAD
        <string>10000</string>
-=======
-       <string>400,400,400,400,400,400,400</string>
->>>>>>> 7aa935157e99ee5f2163daa9e1f9819161180305
       </property>
       <property name="alignment" >
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -68,22 +60,14 @@
     <item row="2" column="0" >
      <widget class="QLabel" name="label_20" >
       <property name="text" >
-<<<<<<< HEAD
        <string>Gap sizes (must be same number as fragments)</string>
-=======
-       <string>Gap sizes</string>
->>>>>>> 7aa935157e99ee5f2163daa9e1f9819161180305
       </property>
      </widget>
     </item>
     <item row="2" column="1" colspan="3" >
      <widget class="QLineEdit" name="gapsEd" >
       <property name="text" >
-<<<<<<< HEAD
        <string>0</string>
-=======
-       <string>500</string>
->>>>>>> 7aa935157e99ee5f2163daa9e1f9819161180305
       </property>
       <property name="alignment" >
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -108,13 +92,47 @@
      </widget>
     </item>
     <item row="4" column="0" >
+     <widget class="QLabel" name="label_31" >
+      <property name="text" >
+       <string>External minimum mutation probability (theta_extMin)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1" colspan="3" >
+     <widget class="QLineEdit" name="theta_extMinEd" >
+      <property name="text" >
+       <string>0.5</string>
+      </property>
+      <property name="alignment" >
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" >
+     <widget class="QLabel" name="label_32" >
+      <property name="text" >
+       <string>External maximum mutation probability (theta_extMax)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="1" colspan="3" >
+     <widget class="QLineEdit" name="theta_extMaxEd" >
+      <property name="text" >
+       <string>1</string>
+      </property>
+      <property name="alignment" >
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0" >
      <widget class="QLabel" name="label_4" >
       <property name="text" >
        <string>Recombination rate (rho)</string>
       </property>
      </widget>
     </item>
-    <item row="4" column="1" colspan="3" >
+    <item row="6" column="1" colspan="3" >
      <widget class="QLineEdit" name="rhoEd" >
       <property name="text" >
        <string>100</string>
@@ -124,14 +142,31 @@
       </property>
      </widget>
     </item>
-    <item row="5" column="0" >
+    <item row="7" column="0" >
+     <widget class="QLabel" name="label_41" >
+      <property name="text" >
+       <string>External recombination rate (rho_ext)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1" colspan="3" >
+     <widget class="QLineEdit" name="rho_extEd" >
+      <property name="text" >
+       <string>0</string>
+      </property>
+      <property name="alignment" >
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0" >
      <widget class="QLabel" name="label_5" >
       <property name="text" >
        <string>Mean tract length (delta)</string>
       </property>
      </widget>
     </item>
-    <item row="5" column="1" colspan="3" >
+    <item row="8" column="1" colspan="3" >
      <widget class="QLineEdit" name="deltaEd" >
       <property name="text" >
        <string>500</string>
@@ -141,110 +176,144 @@
       </property>
      </widget>
     </item>
-    <item row="6" column="0" >
+    <item row="9" column="0" >
+     <widget class="QLabel" name="label_51" >
+      <property name="text" >
+       <string>External mean tract length (delta_ext)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="1" colspan="3" >
+     <widget class="QLineEdit" name="delta_extEd" >
+      <property name="text" >
+       <string>0</string>
+      </property>
+      <property name="alignment" >
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="0" >
      <widget class="QLabel" name="label_10" >
       <property name="text" >
        <string>Population size model</string>
       </property>
      </widget>
     </item>
-    <item row="6" column="1" >
+    <item row="10" column="1" >
      <widget class="QLineEdit" name="popSizeEd" >
       <property name="alignment" >
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
       </property>
      </widget>
     </item>
-    <item row="6" column="2" colspan="2" >
+    <item row="10" column="2" colspan="2" >
      <widget class="QToolButton" name="popSizeShow" >
       <property name="text" >
        <string>Show</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="0" colspan="4" >
+    <item row="11" column="0" colspan="4" >
      <widget class="Line" name="line" >
       <property name="orientation" >
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
     </item>
-    <item row="8" column="0" >
+    <item row="12" column="0" >
      <widget class="QLabel" name="label_6" >
       <property name="text" >
        <string>Save data to...</string>
       </property>
      </widget>
     </item>
-    <item row="8" column="1" colspan="2" >
+    <item row="12" column="1" colspan="2" >
      <widget class="QLineEdit" name="dataTo" />
     </item>
-    <item row="8" column="3" >
+    <item row="12" column="3" >
      <widget class="QToolButton" name="dataSelect" >
       <property name="text" >
        <string>...</string>
       </property>
      </widget>
     </item>
-    <item row="9" column="0" >
+    <item row="13" column="0" >
      <widget class="QLabel" name="label_9" >
       <property name="text" >
        <string>Save local trees to...</string>
       </property>
      </widget>
     </item>
-    <item row="9" column="1" colspan="2" >
+    <item row="13" column="1" colspan="2" >
      <widget class="QLineEdit" name="ltTo" />
     </item>
-    <item row="9" column="3" >
+    <item row="13" column="3" >
      <widget class="QToolButton" name="ltSelect" >
       <property name="text" >
        <string>...</string>
       </property>
      </widget>
     </item>
-    <item row="10" column="0" >
+    <item row="14" column="0" >
      <widget class="QLabel" name="label_7" >
       <property name="text" >
        <string>Save clonal genealogy to...</string>
       </property>
      </widget>
     </item>
-    <item row="10" column="1" colspan="2" >
+    <item row="14" column="1" colspan="2" >
      <widget class="QLineEdit" name="cgTo" />
     </item>
-    <item row="10" column="3" >
+    <item row="14" column="3" >
      <widget class="QToolButton" name="cgSelect" >
       <property name="text" >
        <string>...</string>
       </property>
      </widget>
     </item>
-    <item row="11" column="0" >
+    <item row="15" column="0" >
+     <widget class="QLabel" name="label_71" >
+      <property name="text" >
+       <string>Save recombinant intervals to...</string>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="1" colspan="2" >
+     <widget class="QLineEdit" name="rbTo" />
+    </item>
+    <item row="15" column="3" >
+     <widget class="QToolButton" name="rbSelect" >
+      <property name="text" >
+       <string>...</string>
+      </property>
+     </widget>
+    </item>
+    <item row="16" column="0" >
      <widget class="QLabel" name="label_8" >
       <property name="text" >
        <string>Save DOT graph to...</string>
       </property>
      </widget>
     </item>
-    <item row="11" column="1" colspan="2" >
+    <item row="16" column="1" colspan="2" >
      <widget class="QLineEdit" name="dotTo" />
     </item>
-    <item row="11" column="3" >
+    <item row="16" column="3" >
      <widget class="QToolButton" name="dotSelect" >
       <property name="text" >
        <string>...</string>
       </property>
      </widget>
     </item>
-    <item row="12" column="0" colspan="3" >
+    <item row="17" column="0" colspan="3" >
      <widget class="QCheckBox" name="amEd" >
       <property name="text" >
        <string>Save ancestral material in the DOT graph</string>
       </property>
      </widget>
     </item>
-    <item row="13" column="0" colspan="4" >
+    <item row="18" column="0" colspan="4" >
      <layout class="QHBoxLayout" >
       <item>
        <widget class="QPushButton" name="help" >

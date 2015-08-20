@@ -1,16 +1,18 @@
 #include "arg.h"
-#include <ctime>
 #include <algorithm>
 #include "coal_event.h"
 #include "recomb_event.h"
 #include "recomb_prob.h"
 #include "MRCA_checks.h"
+#include "external_recomb.h"
 //
 
-Arg::Arg(int n,double rho,double delta,vector<int> blocks,vector<int> gaps,PopSize * popsize) {
+Arg::Arg(int n,double rho,double rho_ext,double delta,double delta_ext,vector<int> blocks,vector<int> gaps,PopSize * popsize) {
   this->n=n;
   this->rho=rho;
+  this->rho_ext=rho_ext;
   this->delta=delta;
+  this->delta_ext=delta_ext;
   this->blocks=blocks;
   this->gaps=gaps;
   this->popsize=popsize;
@@ -21,8 +23,6 @@ Arg::Arg(int n,double rho,double delta,vector<int> blocks,vector<int> gaps,PopSi
 
 void Arg::construct() {
   Arg::MRCA M;
-  clock_t t1, t2;
-  t1=clock();
   s.clear(); //Nodes in the graph
   ages.clear(); //List of ages of all nodes
   clonal.clear(); //Clonal check of all nodes
@@ -59,7 +59,7 @@ void Arg::construct() {
 
   //Set values for the first node to be copied into all other leaves
   toCoal.push_back(0);
-  s.push_back(vector<int>(6,-1));
+  s.push_back(vector<int>(8,-1));
   ages.push_back(0.0);
   clonal.push_back(true);
 
@@ -94,7 +94,7 @@ void Arg::construct() {
   }
 
   //Calculate probability of recombination at each site
-  probStart.push_back(vector<double>(b,0.0));
+  probStart.push_back(vector<double>());
   recombRates.push_back(0.0);
   totMaterial.push_back(0);
   calc_clonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb, totMaterial.back());
@@ -102,10 +102,10 @@ void Arg::construct() {
   //Set values for initial nodes of the ARG
   for (int i=1;i<n;++i){
     toCoal.push_back(i); //Initial nodes are in the ARG
-    s.push_back(vector<int>(6,-1)); //Create new node
+    s.push_back(vector<int>(8,-1)); //Create new node
     ages.push_back(0.0); //Give all nodes an age of 0
     clonal.push_back(true); //All initial nodes are clonal
-    probStart.push_back(vector<double>(b,0.0));
+    probStart.push_back(vector<double>());
     probStart.back() = probStart[0];
     recombRates.push_back(0.0);
     recombRates.back() = recombRates[0];
@@ -117,11 +117,7 @@ void Arg::construct() {
     totMaterial.back() = totMaterial[0];
   }
 
-  double currentTime=0.0;
-  t2=clock();
-
-  cout << "Time spent initialising nodes: " << (double)(t2-t1)/CLOCKS_PER_SEC << " seconds" << endl;
-  double split_time=0.0, recomb_probTime=0.0, recomb_intervalTime=0.0, combine_time=0.0, check_time=0.0, remove_time=0.0;
+  double currentTime = 0.0;
 
   //Simulate the coalescence-recombination graph
   while (k>1) {
@@ -129,10 +125,10 @@ void Arg::construct() {
     double currentRecomb = 0.0;
     for (size_t i=0;i<recombRates.size();++i) currentRecomb += recombRates[i];
     //Simulate time to next event exponentially
-    currentTime+=gsl_ran_exponential(rng,2.0/(k*(k-1)+(2.0*currentRecomb)));
+    currentTime+=gsl_ran_exponential(rng,2.0/(k*(k-1)+(2.0*currentRecomb)+rho_ext));
     //Randomly choose coalescence or recombination
-
-    if (gsl_rng_uniform(rng)<(k*(k-1.0))/(k*(k-1.0)+(2.0*currentRecomb))){
+    double reac_rand = gsl_rng_uniform(rng);
+    if (reac_rand<=(k*(k-1.0))/(k*(k-1.0)+(2.0*currentRecomb)+rho_ext)){
       //Coalescence event
       //Choose two children to coalesce at random
       int i = floor(gsl_rng_uniform(rng)*k);
@@ -143,7 +139,7 @@ void Arg::construct() {
         j=k-1;
       }
       //Create new node
-      s.push_back(vector<int>(6,-1));
+      s.push_back(vector<int>(8,-1));
       //Set two children of new node
       s.back()[0] = toCoal[i];
       s.back()[1] = toCoal[j];
@@ -158,7 +154,6 @@ void Arg::construct() {
       toCoal[i] = s.size()-1;
 
       //Test for fully coalesced material
-      t1=clock();
       list<list<int> >::iterator itChildStart1 = intervalStarts.begin(), itChildEnd1 = intervalEnds.begin(), itChildStart2 = intervalStarts.begin(), itChildEnd2 = intervalEnds.begin();
       advance(itChildStart1,i);
       advance(itChildEnd1,i);
@@ -166,16 +161,26 @@ void Arg::construct() {
       advance(itChildEnd2,j);
       int MRCA_check = 0;
       update_MRCA(M, *itChildStart1, *itChildEnd1, *itChildStart2, *itChildEnd2, MRCA_check);
-      t2=clock();
-      check_time += t2-t1;
 
-      t1=clock();
       combine_ancestries(*itChildStart1, *itChildEnd1, *itChildStart2, *itChildEnd2);
-      t2=clock();
-      combine_time += t2-t1;
+
+      //Remove the second child from the ARG
+      toCoal[j] = toCoal.back();
+      toCoal.pop_back();
+      recombRates[j] = recombRates.back();
+      recombRates.pop_back();
+      probStart[j] = probStart.back();
+      probStart.pop_back();
+      *itChildStart2 = intervalStarts.back();
+      intervalStarts.pop_back();
+      *itChildEnd2 = intervalEnds.back();
+      intervalEnds.pop_back();
+      totMaterial[j] = totMaterial.back();
+      totMaterial.pop_back();
+      --k;
+      if (k == 1) continue;
 
       //Find blocks in MRCA struct that have reached a value of one, fully coalesced
-      t1=clock();
       if (MRCA_check == 1){
         M.itStart = (M.starts).begin();
         M.itEnd = (M.ends).begin();
@@ -198,7 +203,6 @@ void Arg::construct() {
               M.itEnd = (M.ends).erase(M.itEnd);
               ++M.itEnd;
             }else ++M.itValue;
-
           }else{
             ++M.itStart;
             ++M.itEnd;
@@ -206,36 +210,16 @@ void Arg::construct() {
           }
         }
       }
-      t2=clock();
-      remove_time += (t2-t1);
 
-      t1 = clock();
       //Calculate the recombination rate for the new node
       if (clonal[toCoal[i]] == true){
         calc_clonalRecomb(G, delta, probStart[i], recombRates[i], *itChildStart1, *itChildEnd1, noStop, siteRecomb, totMaterial[i]);
       }else{
         calc_nonClonalRecomb(G, delta, probStart[i], recombRates[i], *itChildStart1, *itChildEnd1, noStop, siteRecomb, totMaterial[i]);
       }
-      t2=clock();
-      recomb_probTime += (t2-t1);
 
-      //Remove the second child from the ARG
-      toCoal[j] = toCoal.back();
-      toCoal.pop_back();
-      recombRates[j] = recombRates.back();
-      recombRates.pop_back();
-      probStart[j] = probStart.back();
-      probStart.pop_back();
-      *itChildStart2 = intervalStarts.back();
-      intervalStarts.pop_back();
-      *itChildEnd2 = intervalEnds.back();
-      intervalEnds.pop_back();
-      totMaterial[j] = totMaterial.back();
-      totMaterial.pop_back();
-      --k;
-
-    }else{
-      //Recombination event
+    }else if (reac_rand<=((2.0*currentRecomb + (k*(k-1.0)))/(k*(k-1.0)+(2.0*currentRecomb)+rho_ext))){
+      //Internal recombination event
       //Choose a child to undergo recombination weighted by its local recombination rate
       double r_1=gsl_rng_uniform(rng);
       int i=0;
@@ -246,7 +230,6 @@ void Arg::construct() {
 
       //Choose a start site for recombination based on the probstart vector
       int beg=0, end=0;
-      t1=clock();
       list<list<int> >::iterator itParentStart1 = intervalStarts.begin(), itParentEnd1 = intervalEnds.begin();
       advance(itParentStart1,i);
       advance(itParentEnd1,i);
@@ -255,8 +238,6 @@ void Arg::construct() {
       }else{
         choose_nonClonalRecomb(probStart[i], G, *itParentStart1, *itParentEnd1, beg, end, noStop, totMaterial[i], recombRates[i]);
       }
-      t2=clock();
-      recomb_intervalTime += (t2-t1);
 
       //Check if the local tree changes in this interval
       //Local tree recombination interval relates to the absolute ancestral material without any gaps
@@ -285,11 +266,11 @@ void Arg::construct() {
       ages.push_back(currentTime);
       ages.push_back(currentTime);
       //Add a new node
-      s.push_back(vector<int>(6,-1));
+      s.push_back(vector<int>(8,-1));
       //Add child to new parent
       s.back()[0]=toCoal[i];
       //Add second parent
-      s.push_back(vector<int>(6,-1));
+      s.push_back(vector<int>(8,-1));
       //Add child to new parent
       s.back()[0]=toCoal[i];
       //Add start and end of import
@@ -310,13 +291,9 @@ void Arg::construct() {
       totMaterial.push_back(0);
 
       //Set ancestral material of the parents
-      t1=clock();
       split_ancestries(*itParentStart1, *itParentEnd1, intervalStarts.back(), intervalEnds.back(), beg, end);
-      t2=clock();
-      split_time = (t2-t1);
 
       //Calculate recombination rates and start-point probabilities for the new parents
-      t1=clock();
       if (clonal[toCoal[i]] == true){
         calc_clonalRecomb(G, delta, probStart[i], recombRates[i], *itParentStart1, *itParentEnd1, noStop, siteRecomb, totMaterial[i]);
       }else{
@@ -325,21 +302,58 @@ void Arg::construct() {
 
       //And for non-clonal parent
       calc_nonClonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb, totMaterial.back());
-      t2=clock();
-      recomb_probTime += (t2-t1);
       ++k;
+    }else{
+      //External recombination event
+      //Choose a node to undergo external recombination at random
+      int i = floor(gsl_rng_uniform(rng)*k);
+      //Choose a site to start recombinant interval at random
+      int beg = floor(gsl_rng_uniform(rng)*G);
+      //Simulate the end point of the interval via a geometric distribution
+      int end = beg + gsl_ran_geometric(rng,1.0/delta_ext);
+      end = end % G;
+
+      list<list<int> >::iterator itNodeStarts = intervalStarts.begin(), itNodeEnds = intervalEnds.begin();
+      advance(itNodeStarts, i);
+      advance(itNodeEnds, i);
+      int recombStart = -1, recombEnd = -1;
+
+      int ext_check = 0;
+      external_interval(beg, end, recombStart, recombEnd, *itNodeStarts, *itNodeEnds, ext_check);
+      if (ext_check == 1) continue; //Recombinant interval falls outside of ancestral material, reject recombinant event
+
+      int LTbeg = recombStart;
+      int LTend = recombEnd;
+      for (int m=0;m<b;++m){
+        if ((LTbeg >= blockStarts[m]) && (LTbeg <= blockEnds[m])){
+          LTbeg = LTbeg - blockStarts[m] + blocks[m];
+          break;
+        }
+      }
+      for (int m=0;m<b;++m){
+        if ((LTend >= blockStarts[m]) && (LTend <= blockEnds[m])){
+          LTend = LTend - blockStarts[m] + blocks[m];
+          break;
+        }
+      }
+
+      //Add new node to ARG with single child and add as single parent of child
+      s.push_back(vector<int>(8,-1));
+      s.back()[0] = toCoal[i];
+      s.back()[6] = LTbeg;
+      s.back()[7] = LTend;
+      s[toCoal[i]][2] = (s.size()-1);
+      ages.push_back(currentTime);
+      clonal.push_back(clonal[toCoal[i]]);
+
+      //Put new node in the current ARG
+      toCoal[i] = (s.size()-1);
     }
   }
-  cout << "Time spent on splitting ancestries: " << (double)split_time/CLOCKS_PER_SEC << " seconds" << endl;
-  cout << "Time spent on calculating recombinant interval: " << (double)recomb_intervalTime/CLOCKS_PER_SEC << " seconds" << endl;
-  cout << "Time spent on calculating recomb probabilities: " << (double)recomb_probTime/CLOCKS_PER_SEC << " seconds" << endl;
-  cout << "Time spent on combining lineages: " << (double)combine_time/CLOCKS_PER_SEC << " seconds" << endl;
-  cout << "Time spent updating MRCA struct: " << (double)check_time/CLOCKS_PER_SEC << " seconds" << endl;
-  cout << "Time spent checking MRCA struct: " << (double)remove_time/CLOCKS_PER_SEC << " seconds" << endl;
   if (popsize!=NULL) for (unsigned int i=0;i<ages.size();i++) ages[i]=popsize->convert(ages[i]);
 }
 
-Data * Arg::drawData(double theta) {
+Data * Arg::drawData(double theta,double theta_extMin, double theta_extMax) {
   string done;
   int L=blocks.back();
   vector<string*> genotypes(s.size(),NULL);
@@ -376,6 +390,25 @@ Data * Arg::drawData(double theta) {
           int loc=floor(gsl_rng_uniform(rng)*L);
           genotypes[i]->at(loc)=(genotypes[i]->at(loc)+1+(int)floor(gsl_rng_uniform(rng)*3))%4;//Add the mutations randomly based on a poission process
         }
+      //Add external recombination event
+      if (s[i][6] >= 0){
+        double thetaExt = theta_extMin + (gsl_rng_uniform(rng)*(theta_extMax - theta_extMin));//Simulate a site-mutation probability
+        int beg = s[i][6];
+        int end = s[i][7];
+        //Mutate the sites individually
+        if (beg <= end){
+          for (int k=beg;k<=end;++k){
+            if (gsl_rng_uniform(rng) < thetaExt) genotypes[i]->at(k)=(genotypes[i]->at(k)+1+(int)floor(gsl_rng_uniform(rng)*3))%4;
+          }
+        }else{
+          for (int k=0;k<=end;++k){
+            if (gsl_rng_uniform(rng) < thetaExt) genotypes[i]->at(k)=(genotypes[i]->at(k)+1+(int)floor(gsl_rng_uniform(rng)*3))%4;
+          }
+          for (int k=beg;k<L;++k){
+            if (gsl_rng_uniform(rng) < thetaExt) genotypes[i]->at(k)=(genotypes[i]->at(k)+1+(int)floor(gsl_rng_uniform(rng)*3))%4;
+          }
+        }
+      }
     }
   //Create data object
   Data * data=new Data(n,blocks);
@@ -473,6 +506,31 @@ string Arg::buildTree(int r) {
 }
 
 void Arg::outputDOT(ostream * out,bool am) {
+  int L=blocks.back();
+  vector<vector<bool> > extmat;
+  if (am){
+    for (unsigned int i=0;i<s.size();++i) extmat.push_back(vector<bool>(L,false));
+    //Add external recombinant intervals to children of external recombinant nodes
+    for (int i=s.size()-2;i>=0;--i){
+      if (s[i][2] >= 0){
+        for (int k=0;k<L;++k) extmat[i][k] = (extmat[i][k] || extmat[s[i][2]][k]);
+      }
+      if (s[i][3] >= 0){
+        for (int k=0;k<L;++k) extmat[i][k] = (extmat[i][k] || extmat[s[i][3]][k]);
+      }
+      if (s[i][6] >= 0){
+        int beg = s[i][6];
+        int end = s[i][7];
+        if (beg <= end){
+          for (int k=beg;k<=end;++k) extmat[i][k] = true;
+        }else{
+          for (int k=0;k<=end;++k) extmat[i][k] = true;
+          for (int k=beg;k<L;++k) extmat[i][k] = true;
+        }
+      }
+    }
+  }
+
   *out<<"digraph G {fontsize=5;ranksep=0.02;ratio=fill;size=\"10,10\";"<<endl<<"edge[arrowhead=none];"<<endl;
 
 //Put the sampled individuals on the same rank at the bottom of the graph
@@ -481,39 +539,46 @@ void Arg::outputDOT(ostream * out,bool am) {
   *out<<"}"<<endl;
   int lwd=2;//Line width
   vector<vector<bool> > ancmat;
-  int L=blocks.back();
   int ma=0;for (unsigned int i=1;i<blocks.size();++i) ma=max(ma,blocks[i]-blocks[i-1]);
   double width=ceil(50.0/ma);//Width of ancestral material segment, either 50 segments per block, or fewer if block length < 50
   int skip=max(1.0,floor(ma/50.0));//Length of each segment in nucleotides
-  for (int i=0;i<n;i++) ancmat.push_back(vector<bool>(L,true));
+  for (int i=0;i<n;i++){
+    ancmat.push_back(vector<bool>(L,true));
+  }
   for (int i=0;i<(int)ages.size();++i) {
       if (!am) {
         //Ancestral material not to be included in the DOT file
-          if (clonal[i]) *out<<i+1<<"[shape=point,width=0.00,height=0.00]"<<endl;//Black node if clonal
-          else *out<<i+1<<"[shape=point,width=0.00,height=0.00,color=gray]"<<endl;//Gray node if non-clonal
+          if (s[i][6] > -1) *out<<i+1<<"[shape=point,width=1.00,height=1.00,color=red]"<<endl;//Red node if external
+          else if (clonal[i]) *out<<i+1<<"[shape=point,width=1.00,height=1.00]"<<endl;//Black node if clonal
+          else *out<<i+1<<"[shape=point,width=1.00,height=1.00,color=gray]"<<endl;//Gray node if non-clonal
           continue;
         }
       if (i>=n) {
         //Draw the node with the ancestral material included
           ancmat.push_back(ancmat[s[i][0]]);
-          if (s[i][1]>=0) {//Father of two sons
-              for (int k=0;k<L;++k) ancmat.back()[k]=ancmat[s[i][0]][k]||ancmat[s[i][1]][k];
-            } else if (s[s[i][0]][2]==i) //recipient
-          for (int k=0;k<L;++k) {
-            if (s[s[s[i][0]][3]][4]<=s[s[s[i][0]][3]][5]){
-              if (k>s[s[s[i][0]][3]][4]&&k<s[s[s[i][0]][3]][5]) ancmat.back()[k]=false;
-            }else{
-              if (k<s[s[s[i][0]][3]][5]||k>s[s[s[i][0]][3]][4]) ancmat.back()[k]=false;
+          if (s[i][6] == -1){//Node is a coalescent or internal recombination event
+            if (s[i][1]>=0) {//Father of two sons
+              for (int k=0;k<L;++k) ancmat.back()[k]=ancmat[s[i][0]][k]||ancmat[s[i][1]][k];//Include ancestral material of other child
+            }else if (s[s[i][0]][2]==i){ //recipient
+              if (s[s[s[i][0]][3]][4]<=s[s[s[i][0]][3]][5]){
+                for (int k=0;k<L;++k) {
+                  if (k>=s[s[s[i][0]][3]][4]&&k<=s[s[s[i][0]][3]][5]) ancmat.back()[k]=false;
+                }
+              }else{
+                for (int k=0;k<L;++k) {
+                  if (k<=s[s[s[i][0]][3]][5]||k>=s[s[s[i][0]][3]][4]) ancmat.back()[k]=false;
+                }
+              }
+            }else{//donor
+              if (s[i][4] <= s[i][5]){
+                for (int k=0;k<L;++k) {if (k<s[i][4]||k>s[i][5]) ancmat.back()[k]=false;}
+              }else{
+                for (int k=0;k<L;++k) {if (k>s[i][5]&&k<s[i][4]) ancmat.back()[k]=false;}
+              }
             }
           }
-          else//donor
-          if (s[i][4] <= s[i][5]){
-            for (int k=0;k<L;++k) {if (k<=s[i][4]||k>=s[i][5]) ancmat.back()[k]=false;}
-          }else{
-            for (int k=0;k<L;++k) {if (k>=s[i][5]&&k<=s[i][4]) ancmat.back()[k]=false;}
-          }
         }
-        //Draw each node as bars with ancestral material colourd gray on white background
+      //Draw each node as bars with ancestral material colourd gray on white background
       *out<<i+1<<"[shape=plaintext,label=<<table CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\" BORDER=\"0\">";
       //Draw white border at top of box
       *out<<"<tr><td HEIGHT=\""<<lwd<<"\" COLSPAN=\""<<floor(ma/skip)+4<<"\" bgcolor=\"white\"></td></tr><tr>";
@@ -526,11 +591,11 @@ void Arg::outputDOT(ostream * out,bool am) {
         //Draw vertical line at left of box
           *out<<"<td HEIGHT=\"10\" WIDTH=\""<<lwd<<"\" bgcolor=\"white\"></td><td bgcolor=\"black\" WIDTH=\""<<lwd<<"\" HEIGHT=\"10\"></td>";
         //Draw vertical grey or white lines to represent ancestral material or lack of
-          for (int k=blocks[j-1];k<blocks[j];k+=skip)
-            if (ancmat[i][k])
-              *out<<"<td bgcolor=\"grey\" HEIGHT=\"10\" WIDTH=\""<<width<<"\"></td>";
-            else
-              *out<<"<td HEIGHT=\"10\" WIDTH=\""<<width<<"\" bgcolor=\"white\"></td>";
+          for (int k=blocks[j-1];k<blocks[j];k+=skip){
+            if ((extmat[i][k]) && (ancmat[i][k])) *out<<"<td bgcolor=\"red\" HEIGHT=\"10\" WIDTH=\""<<width<<"\"></td>";
+            else if (ancmat[i][k]) *out<<"<td bgcolor=\"grey\" HEIGHT=\"10\" WIDTH=\""<<width<<"\"></td>";
+            else *out<<"<td HEIGHT=\"10\" WIDTH=\""<<width<<"\" bgcolor=\"white\"></td>";
+          }
         //Draw vertical black line at left hand end of box
           *out<<"<td bgcolor=\"black\" WIDTH=\""<<lwd<<"\" HEIGHT=\"10\"></td>";
       }
@@ -552,10 +617,9 @@ void Arg::outputDOT(ostream * out,bool am) {
       if (s[a][2]>=0) {
           int j=s[a][2];
           //if ages(a)==-1;continue;end
-          if (clonal[j] && clonal[a])
-            *out<<j+1<<" -> "<<a+1<<"[style=bold]"<<endl;
-          else
-            *out<<j+1<<" -> "<<a+1<<"[color=gray]"<<endl;
+          if (s[j][6] >=0) *out<<j+1<<" -> "<<a+1<<"[color=red]"<<endl;
+          else if (clonal[j] && clonal[a]) *out<<j+1<<" -> "<<a+1<<"[style=bold]"<<endl;
+          else *out<<j+1<<" -> "<<a+1<<"[color=gray]"<<endl;
         }
 
       //Recombination edges
@@ -582,4 +646,14 @@ void Arg::outputLOCAL(ostream * out) {
       ++i;
       if (i==changeLT.size()) break;
     }
+}
+
+void Arg::outputBREAKS(ostream * out){
+  *out<<"Recombinant intervals" << endl;
+  *out<<"Start\tEnd"<<endl;
+  for (size_t i=0;i<s.size();++i){
+    if (s[i][4] > 0){
+      *out<<s[i][4]<<"\t"<<s[i][5]<<endl;
+    }
+  }
 }

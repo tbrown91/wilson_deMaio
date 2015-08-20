@@ -22,7 +22,7 @@ static const uint qt_meta_data_GuiImpl[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       7,   14, // methods
+       8,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -34,9 +34,10 @@ static const uint qt_meta_data_GuiImpl[] = {
       31,    8,    8,    8, 0x08,
       55,    8,    8,    8, 0x08,
       77,    8,    8,    8, 0x08,
-     100,    8,    8,    8, 0x08,
-     117,    8,    8,    8, 0x08,
-     135,    8,    8,    8, 0x08,
+      99,    8,    8,    8, 0x08,
+     122,    8,    8,    8, 0x08,
+     139,    8,    8,    8, 0x08,
+     157,    8,    8,    8, 0x08,
 
        0        // eod
 };
@@ -44,8 +45,9 @@ static const uint qt_meta_data_GuiImpl[] = {
 static const char qt_meta_stringdata_GuiImpl[] = {
     "GuiImpl\0\0on_ltSelect_clicked()\0"
     "on_dataSelect_clicked()\0on_cgSelect_clicked()\0"
-    "on_dotSelect_clicked()\0on_run_clicked()\0"
-    "on_help_clicked()\0on_popSizeShow_clicked()\0"
+    "on_rbSelect_clicked()\0on_dotSelect_clicked()\0"
+    "on_run_clicked()\0on_help_clicked()\0"
+    "on_popSizeShow_clicked()\0"
 };
 
 void GuiImpl::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -57,10 +59,11 @@ void GuiImpl::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, voi
         case 0: _t->on_ltSelect_clicked(); break;
         case 1: _t->on_dataSelect_clicked(); break;
         case 2: _t->on_cgSelect_clicked(); break;
-        case 3: _t->on_dotSelect_clicked(); break;
-        case 4: _t->on_run_clicked(); break;
-        case 5: _t->on_help_clicked(); break;
-        case 6: _t->on_popSizeShow_clicked(); break;
+        case 3: _t->on_rbSelect_clicked(); break;
+        case 4: _t->on_dotSelect_clicked(); break;
+        case 5: _t->on_run_clicked(); break;
+        case 6: _t->on_help_clicked(); break;
+        case 7: _t->on_popSizeShow_clicked(); break;
         default: ;
         }
     }
@@ -101,9 +104,9 @@ int GuiImpl::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 7)
+        if (_id < 8)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 7;
+        _id -= 8;
     }
     return _id;
 }

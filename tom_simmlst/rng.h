@@ -25,7 +25,7 @@ void makerng() {
    printf("Got seed %u from /dev/urandom\n",seed);
    fclose(devrandom);
  }
-    seed=0;//This is for debugging purposes only
+    //seed=0;//This is for debugging purposes only
     gsl_rng_set(rng,seed);
 }
 
