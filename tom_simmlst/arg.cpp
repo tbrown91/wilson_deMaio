@@ -34,12 +34,16 @@ void Arg::construct() {
   for (int i=0;i<b;++i) G += gaps[i];
 
   const double noStop = 1 - (1/delta); //Geometric rate of elongating recombinant intervals
+  const double noStopExt = 1 - (1/delta_ext); //Geometric rate of elongating external recombinant intervals
   const double siteRecomb = rho/(2*G); //Individual site rate of recombinant interval initiation
+  const double siteRecombExt = rho_ext/(2*G); //Individual site rate of external recombinant interval initiation
 
   int k=n; //Current number of nodes is the number of initial isolates
   vector<int> toCoal;//Contains the list of lines currently in the ARG
   vector<double> recombRates;//Recombination rate of each node
+  vector<double> recombRatesExt;//External recombination rate of each node
   vector<vector<double> > probStart; //Probability of a recombination interval starting at the start of each interval of ancestral material
+  vector<vector<double> > probStartExt; //External probability of a recombination interval starting at the start of each interval of ancestral material
   vector<int> blockStarts; //Contains a list of where the blocks start on the genome
   vector<int> blockEnds; //Contains a list of where the blocks end on the genome
   list<list<int> > intervalStarts; //A list of all ancestral interval start sites for each node
@@ -95,9 +99,12 @@ void Arg::construct() {
 
   //Calculate probability of recombination at each site
   probStart.push_back(vector<double>());
+  probStartExt.push_back(vector<double>());
   recombRates.push_back(0.0);
+  recombRatesExt.push_back(0.0);
   totMaterial.push_back(0);
   calc_clonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb, totMaterial.back());
+  calc_clonalRecomb(G, delta_ext, probStartExt.back(), recombRatesExt.back(), intervalStarts.back(), intervalEnds.back(), noStopExt, siteRecombExt, totMaterial.back());
 
   //Set values for initial nodes of the ARG
   for (int i=1;i<n;++i){
@@ -107,8 +114,12 @@ void Arg::construct() {
     clonal.push_back(true); //All initial nodes are clonal
     probStart.push_back(vector<double>());
     probStart.back() = probStart[0];
+    probStartExt.push_back(vector<double>());
+    probStartExt.back() = probStartExt[0];
     recombRates.push_back(0.0);
     recombRates.back() = recombRates[0];
+    recombRatesExt.push_back(0.0);
+    recombRatesExt.back() = recombRatesExt[0];
     intervalStarts.push_back(list<int>());
     intervalStarts.back() = intervalStarts.front();
     intervalEnds.push_back(list<int>());
@@ -122,10 +133,11 @@ void Arg::construct() {
   //Simulate the coalescence-recombination graph
   while (k>1) {
     //Calculate the current rate of recombination
-    double currentRecomb = 0.0;
+    double currentRecomb = 0.0, currentRecombExt = 0.0;
     for (size_t i=0;i<recombRates.size();++i) currentRecomb += recombRates[i];
+    for (size_t i=0;i<recombRatesExt.size();++i) currentRecombExt += recombRatesExt[i];
     //Simulate time to next event exponentially
-    currentTime+=gsl_ran_exponential(rng,2.0/(k*(k-1)+(2.0*currentRecomb)+rho_ext));
+    currentTime+=gsl_ran_exponential(rng,2.0/(k*(k-1)+(2.0*currentRecomb)+(2.0*currentRecombExt)));
     //Randomly choose coalescence or recombination
     double reac_rand = gsl_rng_uniform(rng);
     if (reac_rand<=(k*(k-1.0))/(k*(k-1.0)+(2.0*currentRecomb)+rho_ext)){
@@ -169,8 +181,12 @@ void Arg::construct() {
       toCoal.pop_back();
       recombRates[j] = recombRates.back();
       recombRates.pop_back();
+      recombRatesExt[j] = recombRatesExt.back();
+      recombRatesExt.pop_back();
       probStart[j] = probStart.back();
       probStart.pop_back();
+      probStartExt[j] = probStartExt.back();
+      probStartExt.pop_back();
       *itChildStart2 = intervalStarts.back();
       intervalStarts.pop_back();
       *itChildEnd2 = intervalEnds.back();
@@ -214,11 +230,13 @@ void Arg::construct() {
       //Calculate the recombination rate for the new node
       if (clonal[toCoal[i]] == true){
         calc_clonalRecomb(G, delta, probStart[i], recombRates[i], *itChildStart1, *itChildEnd1, noStop, siteRecomb, totMaterial[i]);
+        calc_clonalRecomb(G, delta_ext, probStartExt[i], recombRatesExt[i], *itChildStart1, *itChildEnd1, noStopExt, siteRecombExt, totMaterial[i]);
       }else{
         calc_nonClonalRecomb(G, delta, probStart[i], recombRates[i], *itChildStart1, *itChildEnd1, noStop, siteRecomb, totMaterial[i]);
+        calc_nonClonalRecomb(G, delta_ext, probStartExt[i], recombRatesExt[i], *itChildStart1, *itChildEnd1, noStopExt, siteRecombExt, totMaterial[i]);
       }
 
-    }else if (reac_rand<=((2.0*currentRecomb + (k*(k-1.0)))/(k*(k-1.0)+(2.0*currentRecomb)+rho_ext))){
+    }else if (reac_rand<=((2.0*currentRecomb + (k*(k-1.0)))/(k*(k-1.0)+(2.0*currentRecomb)+(2.0*currentRecombExt)))){
       //Internal recombination event
       //Choose a child to undergo recombination weighted by its local recombination rate
       double r_1=gsl_rng_uniform(rng);
@@ -287,7 +305,9 @@ void Arg::construct() {
       intervalStarts.push_back(list<int>());
       intervalEnds.push_back(list<int>());
       recombRates.push_back(0.0);
+      recombRatesExt.push_back(0.0);
       probStart.push_back(vector<double>());
+      probStartExt.push_back(vector<double>());
       totMaterial.push_back(0);
 
       //Set ancestral material of the parents
@@ -296,34 +316,41 @@ void Arg::construct() {
       //Calculate recombination rates and start-point probabilities for the new parents
       if (clonal[toCoal[i]] == true){
         calc_clonalRecomb(G, delta, probStart[i], recombRates[i], *itParentStart1, *itParentEnd1, noStop, siteRecomb, totMaterial[i]);
+        calc_clonalRecomb(G, delta_ext, probStartExt[i], recombRatesExt[i], *itParentStart1, *itParentEnd1, noStopExt, siteRecombExt, totMaterial[i]);
       }else{
         calc_nonClonalRecomb(G, delta, probStart[i], recombRates[i], *itParentStart1, *itParentEnd1, noStop, siteRecomb, totMaterial[i]);
+        calc_nonClonalRecomb(G, delta_ext, probStartExt[i], recombRatesExt[i], *itParentStart1, *itParentEnd1, noStopExt, siteRecombExt, totMaterial[i]);
       }
 
       //And for non-clonal parent
       calc_nonClonalRecomb(G, delta, probStart.back(), recombRates.back(), intervalStarts.back(), intervalEnds.back(), noStop, siteRecomb, totMaterial.back());
+      calc_nonClonalRecomb(G, delta_ext, probStartExt.back(), recombRatesExt.back(), intervalStarts.back(), intervalEnds.back(), noStopExt, siteRecombExt, totMaterial.back());
       ++k;
     }else{
       //External recombination event
       //Choose a node to undergo external recombination at random
-      int i = floor(gsl_rng_uniform(rng)*k);
-      //Choose a site to start recombinant interval at random
-      int beg = floor(gsl_rng_uniform(rng)*G);
-      //Simulate the end point of the interval via a geometric distribution
-      int end = beg + gsl_ran_geometric(rng,1.0/delta_ext);
-      end = end % G;
+      double r_1=gsl_rng_uniform(rng);
+      int i=0;
+      while (r_1>(recombRatesExt[i]/currentRecombExt)){
+        r_1 -= recombRatesExt[i]/currentRecombExt;
+        ++i;
+      }
 
-      list<list<int> >::iterator itNodeStarts = intervalStarts.begin(), itNodeEnds = intervalEnds.begin();
-      advance(itNodeStarts, i);
-      advance(itNodeEnds, i);
-      int recombStart = -1, recombEnd = -1;
+      //Choose a start site for recombination based on the probstart vector
+      int beg=0, end=0;
+      list<list<int> >::iterator itParentStart1 = intervalStarts.begin(), itParentEnd1 = intervalEnds.begin();
+      advance(itParentStart1,i);
+      advance(itParentEnd1,i);
+      if (clonal[toCoal[i]] == true){
+        choose_clonalRecomb(probStartExt[i], G, *itParentStart1, *itParentEnd1, beg, end, delta_ext, totMaterial[i], recombRatesExt[i]);
+      }else{
+        choose_nonClonalRecomb(probStartExt[i], G, *itParentStart1, *itParentEnd1, beg, end, noStopExt, totMaterial[i], recombRatesExt[i]);
+      }
 
-      int ext_check = 0;
-      external_interval(beg, end, recombStart, recombEnd, *itNodeStarts, *itNodeEnds, ext_check);
-      if (ext_check == 1) continue; //Recombinant interval falls outside of ancestral material, reject recombinant event
-
-      int LTbeg = recombStart;
-      int LTend = recombEnd;
+      //Check if the local tree changes in this interval
+      //Local tree recombination interval relates to the absolute ancestral material without any gaps
+      int LTbeg = beg;
+      int LTend = end;
       for (int m=0;m<b;++m){
         if ((LTbeg >= blockStarts[m]) && (LTbeg <= blockEnds[m])){
           LTbeg = LTbeg - blockStarts[m] + blocks[m];
