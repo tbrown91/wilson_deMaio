@@ -4,7 +4,6 @@
 #include "recomb_event.h"
 #include "recomb_prob.h"
 #include "MRCA_checks.h"
-#include "external_recomb.h"
 //
 
 Arg::Arg(int n,double rho,double rho_ext,double delta,double delta_ext,vector<int> blocks,vector<int> gaps,PopSize * popsize) {
