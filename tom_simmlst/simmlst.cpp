@@ -46,12 +46,12 @@ int main(int argc, char *argv[]) {
     PopSize * popsize=NULL;
     int n=100;
     double theta=100.0;
-    double theta_extMin=0.0;
-    double theta_extMax=0.0;
+    double theta_extMin=0.5;
+    double theta_extMax=1.0;
     double rho=100.0;
     double rho_ext=0.0;
     double delta=500.0;
-    double delta_ext=0.0;
+    double delta_ext=500.0;
     int seed=-1;
     bool am=false;
     vector<int> blocks;

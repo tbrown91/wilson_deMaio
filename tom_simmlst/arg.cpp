@@ -127,7 +127,10 @@ void Arg::construct() {
     totMaterial.back() = totMaterial[0];
   }
 
+
   double currentTime = 0.0;
+  int tot_clonal = 0;
+  for (size_t i=0;i<clonal.size();++i) tot_clonal += clonal[i];
 
   //Simulate the coalescence-recombination graph
   while (k>1) {
@@ -161,6 +164,7 @@ void Arg::construct() {
       ages.push_back(currentTime);
       //Determine whether new node is clonal based on clonal status of either child
       clonal.push_back(clonal[toCoal[i]]||clonal[toCoal[j]]);
+      if (clonal[toCoal[i]]&&clonal[toCoal[j]]) --tot_clonal;
       //Add new node to the current ARG
       toCoal[i] = s.size()-1;
 
@@ -193,6 +197,18 @@ void Arg::construct() {
       totMaterial[j] = totMaterial.back();
       totMaterial.pop_back();
       --k;
+      if (tot_clonal == 1){
+        list<int>::iterator e = (*itChildEnd1).begin(), m = (*itChildStart1).begin();
+        int mrca_clonal = 0;
+        while (m != (*itChildStart1).end()){
+          mrca_clonal += (*e - *m + 1);
+          ++m;
+          ++e;
+        }
+        cout << (double)mrca_clonal/G << endl;
+        return;
+        --tot_clonal;
+      }
       if (k == 1) continue;
 
       //Find blocks in MRCA struct that have reached a value of one, fully coalesced
